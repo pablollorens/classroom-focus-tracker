@@ -3,414 +3,624 @@
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { PageContainer } from "@/components/layout";
+import { Avatar, StatusBadge, EmptyState } from "@/components/common";
 import { Toast } from "@/components/Toast";
 
 interface Student {
-    id: string;
-    username: string;
-    firstName: string;
-    lastName: string;
+  id: string;
+  username: string;
+  firstName: string;
+  lastName: string;
 }
 
 interface Group {
+  id: string;
+  name: string;
+  sessions: {
     id: string;
-    name: string;
-    sessions: {
-        id: string;
-        isActive: boolean;
-        preparedLesson: {
-            title: string;
-        }
-    }[];
+    isActive: boolean;
+    preparedLesson: {
+      title: string;
+    };
+  }[];
 }
 
-export default function GroupDetailsPage({ params }: { params: Promise<{ groupId: string }> }) {
-    const { groupId } = use(params);
-    const router = useRouter();
-    const [group, setGroup] = useState<Group | null>(null);
-    const [students, setStudents] = useState<Student[]>([]);
-    const [loading, setLoading] = useState(true);
+interface Lesson {
+  id: string;
+  title: string;
+}
 
-    // Form State
-    const [isAddingString, setIsAddingStudent] = useState(false);
-    const [rawText, setRawText] = useState("");
-    const [error, setError] = useState("");
-    const [isProcessing, setIsProcessing] = useState(false);
+export default function GroupDetailsPage({
+  params,
+}: {
+  params: Promise<{ groupId: string }>;
+}) {
+  const { groupId } = use(params);
+  const router = useRouter();
+  const [group, setGroup] = useState<Group | null>(null);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
-    // Toast State
-    const [showToast, setShowToast] = useState(false);
-    const [toastMessage, setToastMessage] = useState("");
+  // Form State
+  const [isAddingStudent, setIsAddingStudent] = useState(false);
+  const [rawText, setRawText] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
 
-    // Session State
-    const [isStartingSession, setIsStartingSession] = useState(false);
-    const [selectedLessonId, setSelectedLessonId] = useState("");
-    const [lessons, setLessons] = useState<{ id: string, title: string }[]>([]);
-    const [isStarting, setIsStarting] = useState(false);
+  // Toast State
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
 
-    // Fetch lessons when opening modal
-    useEffect(() => {
-        if (isStartingSession) {
-            fetch("/api/lessons")
-                .then(res => res.json())
-                .then(data => setLessons(data))
-                .catch(err => console.error(err));
-        }
-    }, [isStartingSession]);
+  // Session State
+  const [isStartingSession, setIsStartingSession] = useState(false);
+  const [selectedLessonId, setSelectedLessonId] = useState("");
+  const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [isStarting, setIsStarting] = useState(false);
 
-    const handleStartSession = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!selectedLessonId) return;
+  // Fetch lessons when opening modal
+  useEffect(() => {
+    if (isStartingSession) {
+      fetch("/api/lessons")
+        .then((res) => res.json())
+        .then((data) => setLessons(data))
+        .catch((err) => console.error(err));
+    }
+  }, [isStartingSession]);
 
-        setIsStarting(true);
-        try {
-            const res = await fetch("/api/sessions", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ groupId, preparedLessonId: selectedLessonId }),
-            });
+  useEffect(() => {
+    fetchData();
+  }, [groupId]);
 
-            if (res.ok) {
-                const session = await res.json();
-                router.push(`/dashboard/sessions/${session.id}`);
-            } else {
-                alert("Failed to start session");
-            }
-        } catch (err) {
-            console.error(err);
-            alert("Error starting session");
-        } finally {
-            setIsStarting(false);
-        }
-    };
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const groupRes = await fetch(`/api/groups/${groupId}`);
+      if (!groupRes.ok) {
+        if (groupRes.status === 404) router.push("/dashboard");
+        return;
+      }
+      const groupData = await groupRes.json();
+      setGroup(groupData);
 
-    const handleDeleteGroup = async () => {
-        if (!confirm(`Are you sure you want to delete "${group?.name}" and ALL its students? This cannot be undone.`)) {
-            return;
-        }
+      const studentsRes = await fetch(`/api/groups/${groupId}/students`);
+      if (studentsRes.ok) {
+        const studentsData = await studentsRes.json();
+        setStudents(studentsData);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        try {
-            const res = await fetch(`/api/groups/${groupId}`, {
-                method: "DELETE",
-            });
+  const handleStartSession = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedLessonId) return;
 
-            if (res.ok) {
-                router.push("/dashboard");
-            } else {
-                alert("Failed to delete group");
-            }
-        } catch (err) {
-            alert("Error deleting group");
-        }
-    };
+    setIsStarting(true);
+    try {
+      const res = await fetch("/api/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ groupId, preparedLessonId: selectedLessonId }),
+      });
 
-    const handleDeleteStudent = async (studentId: string) => {
-        // Optimistic update
-        const previousStudents = [...students];
-        setStudents(students.filter(s => s.id !== studentId));
+      if (res.ok) {
+        const session = await res.json();
+        router.push(`/dashboard/sessions/${session.id}`);
+      } else {
+        setToastMessage("Error al iniciar sesión");
+        setShowToast(true);
+      }
+    } catch {
+      setToastMessage("Error al iniciar sesión");
+      setShowToast(true);
+    } finally {
+      setIsStarting(false);
+    }
+  };
 
-        try {
-            const res = await fetch(`/api/groups/${groupId}/students/${studentId}`, {
-                method: "DELETE",
-            });
-
-            if (res.ok) {
-                setToastMessage("Student removed");
-                setShowToast(true);
-            } else {
-                // Revert on failure
-                setStudents(previousStudents);
-                alert("Failed to delete student");
-            }
-        } catch (err) {
-            setStudents(previousStudents);
-            alert("Error deleting student");
-        }
-    };
-
-    useEffect(() => {
-        fetchData();
-    }, [groupId]);
-
-    const fetchData = async () => {
-        try {
-            setLoading(true);
-            // Fetch group details
-            const groupRes = await fetch(`/api/groups/${groupId}`);
-            if (!groupRes.ok) {
-                if (groupRes.status === 404) router.push("/dashboard");
-                return;
-            }
-            const groupData = await groupRes.json();
-            setGroup(groupData);
-
-            // Fetch students
-            const studentsRes = await fetch(`/api/groups/${groupId}/students`);
-            if (studentsRes.ok) {
-                const studentsData = await studentsRes.json();
-                setStudents(studentsData);
-            }
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const generateUsername = (firstName: string, lastName: string, groupName: string) => {
-        // User requested: firstname.lastname (unique within group)
-        // We sanitize: lowercase, replace spaces/special chars with empty string or relevant replacement
-        const sanitize = (str: string) => str.toLowerCase().replace(/[^a-z0-9]/g, "");
-        const f = sanitize(firstName);
-        const l = sanitize(lastName);
-        return `${f}.${l}`;
-    };
-
-    const handleBulkAdd = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!group) return;
-        setIsProcessing(true);
-        setError("");
-
-        const lines = rawText.split('\n').filter(line => line.trim() !== '');
-        let successCount = 0;
-        let dupCount = 0;
-        let errorCount = 0;
-
-        for (const line of lines) {
-            const parts = line.trim().split(' ');
-            if (parts.length < 1) continue;
-
-            const firstName = parts[0];
-            const lastName = parts.slice(1).join(' ') || 'Student'; // Fallback if no last name
-            const username = generateUsername(firstName, lastName, group.name);
-
-            try {
-                const res = await fetch(`/api/groups/${groupId}/students`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ firstName, lastName, username }),
-                });
-
-                if (res.ok) {
-                    successCount++;
-                } else if (res.status === 409) {
-                    dupCount++;
-                } else {
-                    errorCount++;
-                }
-            } catch (err) {
-                console.error("Failed to add", line);
-                errorCount++;
-            }
-        }
-
-        setRawText("");
-        setIsProcessing(false);
-        setIsAddingStudent(false);
-        fetchData();
-
-        // Show summary
-        if (successCount > 0 || dupCount > 0 || errorCount > 0) {
-            setToastMessage(`Added: ${successCount}, Skipped: ${dupCount}, Errors: ${errorCount}`);
-            setShowToast(true);
-        }
-    };
-
-
-    if (loading) {
-        return <div className="p-8 text-center">Loading...</div>;
+  const handleDeleteGroup = async () => {
+    if (
+      !confirm(
+        `¿Estás seguro de eliminar "${group?.name}" y TODOS sus estudiantes? Esto no se puede deshacer.`
+      )
+    ) {
+      return;
     }
 
-    if (!group) return null;
+    try {
+      const res = await fetch(`/api/groups/${groupId}`, {
+        method: "DELETE",
+      });
 
-    // Helper to get active session
-    const activeSession = group?.sessions?.[0];
+      if (res.ok) {
+        router.push("/dashboard");
+      } else {
+        setToastMessage("Error al eliminar grupo");
+        setShowToast(true);
+      }
+    } catch {
+      setToastMessage("Error al eliminar grupo");
+      setShowToast(true);
+    }
+  };
 
+  const handleDeleteStudent = async (studentId: string) => {
+    const previousStudents = [...students];
+    setStudents(students.filter((s) => s.id !== studentId));
+
+    try {
+      const res = await fetch(
+        `/api/groups/${groupId}/students/${studentId}`,
+        { method: "DELETE" }
+      );
+
+      if (res.ok) {
+        setToastMessage("Estudiante eliminado");
+        setShowToast(true);
+      } else {
+        setStudents(previousStudents);
+        setToastMessage("Error al eliminar estudiante");
+        setShowToast(true);
+      }
+    } catch {
+      setStudents(previousStudents);
+      setToastMessage("Error al eliminar estudiante");
+      setShowToast(true);
+    }
+  };
+
+  const generateUsername = (firstName: string, lastName: string) => {
+    const sanitize = (str: string) =>
+      str.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const f = sanitize(firstName);
+    const l = sanitize(lastName);
+    return `${f}.${l}`;
+  };
+
+  const handleBulkAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!group) return;
+    setIsProcessing(true);
+
+    const lines = rawText.split("\n").filter((line) => line.trim() !== "");
+    let successCount = 0;
+    let dupCount = 0;
+    let errorCount = 0;
+
+    for (const line of lines) {
+      const parts = line.trim().split(" ");
+      if (parts.length < 1) continue;
+
+      const firstName = parts[0];
+      const lastName = parts.slice(1).join(" ") || "Student";
+      const username = generateUsername(firstName, lastName);
+
+      try {
+        const res = await fetch(`/api/groups/${groupId}/students`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ firstName, lastName, username }),
+        });
+
+        if (res.ok) {
+          successCount++;
+        } else if (res.status === 409) {
+          dupCount++;
+        } else {
+          errorCount++;
+        }
+      } catch {
+        errorCount++;
+      }
+    }
+
+    setRawText("");
+    setIsProcessing(false);
+    setIsAddingStudent(false);
+    fetchData();
+
+    if (successCount > 0 || dupCount > 0 || errorCount > 0) {
+      setToastMessage(
+        `Añadidos: ${successCount}, Omitidos: ${dupCount}, Errores: ${errorCount}`
+      );
+      setShowToast(true);
+    }
+  };
+
+  // Filter students by search
+  const filteredStudents = students.filter(
+    (student) =>
+      student.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      student.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      student.username.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const activeSession = group?.sessions?.[0];
+
+  if (loading) {
     return (
-        <div className="space-y-6">
-            {/* Top Banner for Active Session */}
-            {activeSession && (
-                <div className="bg-green-600 px-4 py-3 rounded-md shadow-md flex items-center justify-between text-white">
-                    <div className="flex items-center gap-2">
-                        <span className="relative flex h-3 w-3">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-200 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
-                        </span>
-                        <span className="font-medium">Session Active: {activeSession.preparedLesson.title}</span>
-                    </div>
-                    <button
-                        onClick={() => router.push(`/dashboard/sessions/${activeSession.id}`)}
-                        className="text-sm font-semibold bg-white text-green-700 px-3 py-1 rounded hover:bg-green-50"
-                    >
-                        Go to Monitor &rarr;
-                    </button>
-                </div>
-            )}
+      <PageContainer>
+        <div className="flex-center h-64">
+          <div className="flex flex-col items-center gap-3">
+            <div className="size-8 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
+            <span className="text-body">Cargando grupo...</span>
+          </div>
+        </div>
+      </PageContainer>
+    );
+  }
 
-            {/* Navigation Breadcrumb */}
-            <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
-                <Link href="/dashboard" className="hover:text-gray-900 dark:hover:text-white">Dashboard</Link>
-                <span>/</span>
-                <span className="text-gray-900 dark:text-white font-medium">{group.name}</span>
+  if (!group) return null;
+
+  return (
+    <PageContainer>
+      {/* Active Session Banner */}
+      {activeSession && (
+        <div className="surface-card-highlight p-4 flex items-center justify-between animate-pulse-glow">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <span className="material-symbols-outlined text-2xl text-green-400">
+                sensors
+              </span>
+              <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-ping" />
+            </div>
+            <div>
+              <p className="text-heading text-sm">Sesión Activa</p>
+              <p className="text-caption">{activeSession.preparedLesson.title}</p>
+            </div>
+          </div>
+          <button
+            onClick={() => router.push(`/dashboard/sessions/${activeSession.id}`)}
+            className="btn-primary btn-sm"
+          >
+            <span className="material-symbols-outlined text-lg">
+              visibility
+            </span>
+            Monitorear
+          </button>
+        </div>
+      )}
+
+      {/* Breadcrumb */}
+      <nav className="flex items-center gap-2 text-sm">
+        <Link
+          href="/dashboard"
+          className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+        >
+          Dashboard
+        </Link>
+        <span className="text-[var(--text-muted)]">/</span>
+        <span className="text-[var(--text-primary)] font-medium">
+          {group.name}
+        </span>
+      </nav>
+
+      {/* Header */}
+      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-heading-xl">{group.name}</h1>
+          <p className="text-body mt-1">
+            {students.length} {students.length === 1 ? "estudiante" : "estudiantes"}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setIsAddingStudent(true)}
+            className="btn-primary btn-md"
+          >
+            <span className="material-symbols-outlined text-lg">
+              person_add
+            </span>
+            Añadir Estudiantes
+          </button>
+
+          {!activeSession && (
+            <button
+              onClick={() => setIsStartingSession(true)}
+              className="btn-secondary btn-md"
+            >
+              <span className="material-symbols-outlined text-lg">
+                play_circle
+              </span>
+              Iniciar Sesión
+            </button>
+          )}
+
+          <button onClick={handleDeleteGroup} className="btn-danger btn-md">
+            <span className="material-symbols-outlined text-lg">delete</span>
+          </button>
+        </div>
+      </header>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="surface-card p-4">
+          <div className="flex items-center gap-3">
+            <div className="icon-container-md icon-primary">
+              <span className="material-symbols-outlined">groups</span>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-[var(--text-primary)]">
+                {students.length}
+              </p>
+              <p className="text-caption">Total Estudiantes</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="surface-card p-4">
+          <div className="flex items-center gap-3">
+            <div className="icon-container-md icon-muted">
+              <span className="material-symbols-outlined">local_library</span>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-[var(--text-primary)]">
+                {lessons.length || "—"}
+              </p>
+              <p className="text-caption">Lecciones</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="surface-card p-4">
+          <div className="flex items-center gap-3">
+            <div className="icon-container-md" style={{ backgroundColor: "rgba(34, 197, 94, 0.1)", color: "rgb(34, 197, 94)" }}>
+              <span className="material-symbols-outlined">check_circle</span>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-green-400">
+                {activeSession ? "En vivo" : "—"}
+              </p>
+              <p className="text-caption">Estado</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="surface-card p-4">
+          <div className="flex items-center gap-3">
+            <div className="icon-container-md" style={{ backgroundColor: "rgba(245, 158, 11, 0.1)", color: "rgb(245, 158, 11)" }}>
+              <span className="material-symbols-outlined">schedule</span>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-[var(--text-primary)]">—</p>
+              <p className="text-caption">Próxima Clase</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Search */}
+      <div className="relative max-w-md">
+        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]">
+          search
+        </span>
+        <input
+          type="text"
+          placeholder="Buscar estudiantes..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="form-input pl-10 w-full"
+        />
+      </div>
+
+      {/* Students Table */}
+      {students.length === 0 ? (
+        <EmptyState
+          icon="person_off"
+          title="Sin estudiantes"
+          description="Añade estudiantes a este grupo para comenzar a monitorear su progreso."
+          action={{
+            label: "Añadir Estudiantes",
+            onClick: () => setIsAddingStudent(true),
+          }}
+        />
+      ) : (
+        <div className="surface-card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-[var(--border-default)]">
+                  <th className="text-left p-4 text-label">Estudiante</th>
+                  <th className="text-left p-4 text-label hidden sm:table-cell">
+                    Usuario
+                  </th>
+                  <th className="text-right p-4 text-label">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredStudents.map((student) => (
+                  <tr
+                    key={student.id}
+                    onClick={() =>
+                      router.push(
+                        `/dashboard/groups/${groupId}/students/${student.id}`
+                      )
+                    }
+                    className="border-b border-[var(--border-default)] hover:bg-[var(--surface-hover)] cursor-pointer transition-colors"
+                  >
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <Avatar
+                          name={`${student.firstName} ${student.lastName}`}
+                          size="md"
+                        />
+                        <div>
+                          <p className="font-medium text-[var(--text-primary)]">
+                            {student.firstName} {student.lastName}
+                          </p>
+                          <p className="text-caption sm:hidden">
+                            @{student.username}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-4 hidden sm:table-cell">
+                      <span className="text-[var(--text-secondary)]">
+                        @{student.username}
+                      </span>
+                    </td>
+                    <td className="p-4 text-right">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteStudent(student.id);
+                        }}
+                        className="p-2 rounded-lg text-[var(--text-muted)] hover:text-red-400 hover:bg-red-400/10 transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-xl">
+                          delete
+                        </span>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {filteredStudents.length === 0 && searchQuery && (
+            <div className="p-8 text-center">
+              <span className="material-symbols-outlined text-4xl text-[var(--text-muted)] mb-2">
+                search_off
+              </span>
+              <p className="text-body">
+                No se encontraron estudiantes con "{searchQuery}"
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Add Students Modal */}
+      {isAddingStudent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-lg surface-card p-6">
+            <div className="flex-between mb-6">
+              <h2 className="text-heading text-xl">Añadir Estudiantes</h2>
+              <button
+                onClick={() => setIsAddingStudent(false)}
+                className="p-1 rounded hover:bg-[var(--surface-hover)]"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
             </div>
 
-            <header className="flex items-center justify-between border-b pb-4 dark:border-gray-700">
-                <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-                    {group.name}
-                </h1>
-                <div className="flex gap-2">
-                    <button
-                        onClick={() => setIsAddingStudent(true)}
-                        className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
-                    >
-                        Add Students
-                    </button>
+            <form onSubmit={handleBulkAdd} className="space-y-4">
+              <div>
+                <label htmlFor="studentList" className="form-label">
+                  Lista de estudiantes (uno por línea: Nombre Apellido)
+                </label>
+                <textarea
+                  id="studentList"
+                  rows={6}
+                  value={rawText}
+                  onChange={(e) => setRawText(e.target.value)}
+                  className="form-textarea mt-1 font-mono"
+                  placeholder={"Juan Pérez\nMaría García\nCarlos López"}
+                  required
+                  autoFocus
+                />
+                <p className="form-hint">
+                  Se generará automáticamente un usuario único para cada
+                  estudiante.
+                </p>
+              </div>
 
-                    {!activeSession && (
-                        <button
-                            onClick={() => setIsStartingSession(true)}
-                            className="inline-flex items-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500"
-                        >
-                            Start Session
-                        </button>
-                    )}
-
-                    <button
-                        onClick={handleDeleteGroup}
-                        className="inline-flex items-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500"
-                    >
-                        Delete Group
-                    </button>
-                </div>
-            </header>
-
-            {/* Start Session Modal (Simple Inline) */}
-            {isStartingSession && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-                    <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
-                        <h2 className="mb-4 text-lg font-bold text-gray-900 dark:text-white">Start New Session</h2>
-                        <form onSubmit={handleStartSession}>
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                    Select Prepared Lesson
-                                </label>
-                                <select
-                                    value={selectedLessonId}
-                                    onChange={(e) => setSelectedLessonId(e.target.value)}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm text-gray-900 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white px-3 py-2"
-                                    required
-                                >
-                                    <option value="">-- Choose a Lesson --</option>
-                                    {lessons.map(l => (
-                                        <option key={l.id} value={l.id}>{l.title}</option>
-                                    ))}
-                                </select>
-                                <p className="mt-2 text-xs text-gray-500">
-                                    Don't see your lesson? <Link href="/dashboard/lessons" className="text-indigo-500 hover:underline">Create one here</Link>.
-                                </p>
-                            </div>
-                            <div className="flex justify-end gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsStartingSession(false)}
-                                    className="rounded-md bg-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={isStarting || !selectedLessonId}
-                                    className="rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-500 disabled:opacity-50"
-                                >
-                                    {isStarting ? "Starting..." : "Begin"}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            {isAddingString && (
-                <div className="mb-6 rounded-lg bg-gray-50 p-4 border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
-                    <form onSubmit={handleBulkAdd} className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                Paste Student List (One per line: Name Surname)
-                            </label>
-                            <textarea
-                                rows={5}
-                                value={rawText}
-                                onChange={(e) => setRawText(e.target.value)}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm text-gray-900 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white px-3 py-2 font-mono"
-                                placeholder={"John Doe\nAlice Smith\nBob Jones"}
-                                required
-                            />
-                        </div>
-                        {error && <p className="text-red-500 text-sm">{error}</p>}
-                        <div className="flex justify-end gap-2">
-                            <button
-                                type="button"
-                                onClick={() => setIsAddingStudent(false)}
-                                className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-gray-700 dark:text-white dark:ring-gray-600 dark:hover:bg-gray-600"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="submit"
-                                disabled={isProcessing}
-                                className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 disabled:opacity-50"
-                            >
-                                {isProcessing ? "Adding..." : "Add Students"}
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            )}
-
-            <main>
-                <div className="overflow-hidden bg-white dark:bg-gray-800 shadow sm:rounded-md border border-gray-200 dark:border-gray-700">
-                    <ul role="list" className="divide-y divide-gray-200 dark:divide-gray-700">
-                        {students.length === 0 ? (
-                            <li className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-                                No students in this group yet.
-                            </li>
-                        ) : (
-                            students.map((student) => (
-                                <li
-                                    key={student.id}
-                                    className="px-4 py-4 sm:px-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors"
-                                    onClick={() => router.push(`/dashboard/groups/${groupId}/students/${student.id}`)}
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex flex-col">
-                                            <p className="text-sm font-medium text-indigo-600 dark:text-indigo-400 truncate">
-                                                {student.firstName} {student.lastName}
-                                            </p>
-                                            <p className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                                                Username: {student.username}
-                                            </p>
-                                        </div>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation(); // Prevent navigation
-                                                handleDeleteStudent(student.id);
-                                            }}
-                                            className="text-sm font-medium text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 px-3 py-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer"
-                                        >
-                                            Remove
-                                        </button>
-                                    </div>
-                                </li>
-                            ))
-                        )}
-                    </ul>
-                </div>
-            </main>
-            <Toast
-                message={toastMessage}
-                isVisible={showToast}
-                onClose={() => setShowToast(false)}
-            />
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsAddingStudent(false)}
+                  className="btn-ghost btn-md"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isProcessing}
+                  className="btn-primary btn-md"
+                >
+                  {isProcessing ? "Añadiendo..." : "Añadir Estudiantes"}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-    );
+      )}
+
+      {/* Start Session Modal */}
+      {isStartingSession && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md surface-card p-6">
+            <div className="flex-between mb-6">
+              <h2 className="text-heading text-xl">Iniciar Sesión</h2>
+              <button
+                onClick={() => setIsStartingSession(false)}
+                className="p-1 rounded hover:bg-[var(--surface-hover)]"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <form onSubmit={handleStartSession} className="space-y-4">
+              <div>
+                <label htmlFor="lessonSelect" className="form-label">
+                  Seleccionar Lección
+                </label>
+                <select
+                  id="lessonSelect"
+                  value={selectedLessonId}
+                  onChange={(e) => setSelectedLessonId(e.target.value)}
+                  className="form-select mt-1"
+                  required
+                >
+                  <option value="">-- Elige una lección --</option>
+                  {lessons.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.title}
+                    </option>
+                  ))}
+                </select>
+                <p className="form-hint">
+                  ¿No ves tu lección?{" "}
+                  <Link
+                    href="/dashboard/lessons?tab=lessons"
+                    className="text-[var(--color-primary)] hover:underline"
+                  >
+                    Crear una nueva
+                  </Link>
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsStartingSession(false)}
+                  className="btn-ghost btn-md"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isStarting || !selectedLessonId}
+                  className="btn-primary btn-md"
+                >
+                  {isStarting ? "Iniciando..." : "Comenzar Sesión"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <Toast
+        message={toastMessage}
+        isVisible={showToast}
+        onClose={() => setShowToast(false)}
+      />
+    </PageContainer>
+  );
 }
