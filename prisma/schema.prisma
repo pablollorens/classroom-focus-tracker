@@ -1,0 +1,164 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Teacher {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String? // Nullable until set
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  groups           Group[]
+  lessons          PreparedLesson[]
+  sessions         Session[]
+  resources        Resource[]
+  scheduledClasses ScheduledClass[]
+}
+
+model Resource {
+  id        String   @id @default(cuid())
+  title     String
+  type      String   // VIDEO, PDF, URL, TEXT
+  url       String?  // null para TEXT
+  content   String?  // contenido para TEXT
+  duration  Int?     // minutos estimados
+  teacherId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  teacher   Teacher    @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  exercises Exercise[]
+}
+
+model Group {
+  id        String   @id @default(cuid())
+  name      String
+  teacherId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  teacher          Teacher          @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  students         Student[]
+  sessions         Session[]
+  scheduledClasses ScheduledClass[]
+
+  @@unique([teacherId, name]) // Prevent duplicate group names for same teacher
+}
+
+model Student {
+  id        String   @id @default(cuid())
+  firstName String
+  lastName  String
+  username  String
+  groupId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  group             Group               @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  activityLogs      ActivityLog[]
+  SessionAttendance SessionAttendance[]
+
+  @@unique([groupId, username]) // Usernames unique within group (or handled logic for duplicates)
+}
+
+model PreparedLesson {
+  id        String   @id @default(cuid())
+  title     String
+  teacherId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  teacher          Teacher          @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  exercises        Exercise[]
+  sessions         Session[]
+  scheduledClasses ScheduledClass[]
+}
+
+model Exercise {
+  id               String  @id @default(cuid())
+  resourceId       String? // nullable temporalmente para migración
+  title            String? // deprecated, mantener para migración
+  url              String? // deprecated, mantener para migración
+  orderIndex       Int
+  preparedLessonId String
+
+  resource       Resource?      @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  preparedLesson PreparedLesson @relation(fields: [preparedLessonId], references: [id], onDelete: Cascade)
+}
+
+model Session {
+  id               String    @id @default(cuid())
+  password         String
+  isActive         Boolean   @default(true)
+  teacherId        String
+  groupId          String
+  preparedLessonId String
+  startedAt        DateTime  @default(now())
+  endedAt          DateTime?
+
+  teacher        Teacher        @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  group          Group          @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  preparedLesson PreparedLesson @relation(fields: [preparedLessonId], references: [id], onDelete: Cascade)
+
+  activityLogs      ActivityLog[]
+  SessionAttendance SessionAttendance[]
+}
+
+model ActivityLog {
+  id            String   @id @default(cuid())
+  sessionId     String
+  studentId     String
+  timestamp     DateTime @default(now())
+  status        String // "ACTIVE", "IDLE", "AWAY", "OFFLINE"
+  duration      Int?     // Duration in seconds
+  exerciseIndex Int      @default(0)
+
+  // Optional: Store raw data if needed
+  visibility String? // "visible", "hidden"
+
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+model SessionAttendance {
+  id            String   @id @default(cuid())
+  sessionId     String
+  studentId     String
+  joinedAt      DateTime @default(now())
+  lastHeartbeat DateTime @default(now())
+  lastStatusChange DateTime @default(now())
+  currentStatus String   @default("ACTIVE") // ACTIVE, IDLE, DISTRACTED, OFFLINE
+
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, studentId])
+}
+
+model ScheduledClass {
+  id               String    @id @default(cuid())
+  teacherId        String
+  groupId          String
+  preparedLessonId String
+  dayOfWeek        Int?      // 0-6 para recurrentes (0=Domingo), null para puntuales
+  specificDate     DateTime? // fecha específica para puntuales
+  startTime        String    // "09:00" formato HH:mm
+  duration         Int       // minutos
+  isRecurring      Boolean   @default(false)
+  notes            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  teacher        Teacher        @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  group          Group          @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  preparedLesson PreparedLesson @relation(fields: [preparedLessonId], references: [id], onDelete: Cascade)
+}
