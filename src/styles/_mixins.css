@@ -1,0 +1,127 @@
+/* ===========================================
+   MIXINS - Composiciones de estilos
+   =========================================== */
+
+@layer components {
+  /* --- Icon Containers --- */
+  .icon-container-sm {
+    @apply flex-center size-8 rounded-lg;
+  }
+
+  .icon-container-md {
+    @apply flex-center size-10 rounded-lg;
+  }
+
+  .icon-container-lg {
+    @apply flex-center size-12 rounded-xl;
+  }
+
+  .icon-primary {
+    @apply bg-[var(--color-primary-muted)] text-[var(--color-primary)];
+  }
+
+  .icon-muted {
+    @apply bg-[var(--surface-overlay)] text-[var(--text-secondary)];
+  }
+
+  /* --- Status Dots --- */
+  .status-dot {
+    @apply size-2 rounded-full;
+  }
+
+  .status-dot-active {
+    @apply size-2 rounded-full bg-[var(--status-active)] shadow-[0_0_8px_var(--status-active)];
+  }
+
+  .status-dot-idle {
+    @apply size-2 rounded-full bg-[var(--status-idle)];
+  }
+
+  .status-dot-distracted {
+    @apply size-2 rounded-full bg-[var(--status-distracted)] animate-pulse;
+  }
+
+  .status-dot-offline {
+    @apply size-2 rounded-full bg-[var(--status-offline)];
+  }
+
+  /* --- Status Badges --- */
+  .badge-base {
+    @apply inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide;
+  }
+
+  .badge-live {
+    @apply badge-base bg-red-500 text-white animate-pulse;
+  }
+
+  .badge-active {
+    @apply badge-base bg-[var(--color-primary-muted)] text-[var(--color-primary)]
+           border border-[var(--color-primary)]/20;
+  }
+
+  .badge-idle {
+    @apply badge-base bg-amber-500/10 text-amber-500 border border-amber-500/20;
+  }
+
+  .badge-distracted {
+    @apply badge-base bg-red-500/10 text-red-400 border border-red-500/20;
+  }
+
+  .badge-offline {
+    @apply badge-base bg-gray-500/10 text-gray-400 border border-gray-500/20;
+  }
+
+  .badge-success {
+    @apply badge-base bg-green-500/10 text-green-400 border border-green-500/20;
+  }
+
+  /* --- Cards especializados --- */
+  .card-lesson {
+    @apply surface-card-interactive p-4 flex flex-col gap-3 hover:shadow-md hover:-translate-y-0.5;
+  }
+
+  .card-student {
+    @apply surface-card p-4 flex flex-col items-center gap-3;
+  }
+
+  .card-student-alert {
+    @apply surface-card-alert p-4 flex flex-col items-center gap-3;
+  }
+
+  /* --- Inputs --- */
+  .input-base {
+    @apply w-full bg-[var(--surface-darker)] border border-[var(--border-default)]
+           rounded-lg px-3 py-2 text-sm text-[var(--text-primary)]
+           placeholder:text-[var(--text-muted)]
+           focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]
+           focus:outline-none transition-colors;
+  }
+
+  .input-with-icon {
+    @apply input-base pl-10;
+  }
+
+  /* --- Scrollbar --- */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-default) var(--surface-base);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: var(--surface-base);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--border-default);
+    border-radius: 3px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--border-hover);
+  }
+}

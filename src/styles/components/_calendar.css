@@ -1,0 +1,72 @@
+/* ===========================================
+   CALENDAR
+   =========================================== */
+
+@layer components {
+  /* --- Grid Layout --- */
+  .calendar-grid {
+    @apply grid grid-cols-[60px_1fr_1fr_1fr_1fr_1fr] auto-rows-[80px] relative;
+  }
+
+  .calendar-header {
+    @apply grid grid-cols-[60px_1fr_1fr_1fr_1fr_1fr] sticky top-0 z-10
+           bg-[var(--surface-base)] border-b border-[var(--border-default)] shadow-sm;
+  }
+
+  .calendar-day-header {
+    @apply p-4 text-center border-r border-[var(--border-default)];
+  }
+
+  .calendar-day-header-current {
+    @apply calendar-day-header bg-[var(--color-primary)]/5;
+  }
+
+  .calendar-time-label {
+    @apply text-[var(--text-muted)] text-xs font-medium text-right pr-3 pt-2 -mt-2.5;
+  }
+
+  .calendar-cell {
+    @apply border-b border-[var(--border-default)]/30 p-1 relative
+           hover:bg-white/[0.02] transition-colors;
+  }
+
+  .calendar-cell-current {
+    @apply calendar-cell bg-[var(--color-primary)]/5;
+  }
+
+  /* --- Time Indicator --- */
+  .calendar-time-indicator {
+    @apply absolute left-0 right-0 h-[2px] bg-red-500 z-30 pointer-events-none flex items-center;
+  }
+
+  .calendar-time-indicator-dot {
+    @apply size-2 bg-red-500 rounded-full -ml-1 ring-2 ring-[var(--surface-base)];
+  }
+
+  /* --- Scheduled Class Card --- */
+  .calendar-class-card {
+    @apply absolute left-2 right-2 z-20 rounded p-3 shadow-lg cursor-pointer
+           transition-colors flex flex-col gap-1 ring-1 ring-inset ring-white/5;
+  }
+
+  .calendar-class-card:hover {
+    @apply brightness-110;
+  }
+
+  /* --- Lesson Bank --- */
+  .lesson-bank-item {
+    @apply bg-[var(--surface-base)] p-3 rounded-lg border border-[var(--border-default)]
+           hover:border-[var(--color-primary)]/50 cursor-grab active:cursor-grabbing
+           transition-all shadow-sm hover:shadow-lg hover:shadow-[var(--color-primary)]/5;
+  }
+
+  .lesson-bank-item-dragging {
+    @apply opacity-50 scale-105;
+  }
+
+  /* --- Drop Zone --- */
+  .calendar-drop-zone {
+    @apply absolute inset-0 border-2 border-dashed border-[var(--color-primary)]/50
+           bg-[var(--color-primary)]/10 rounded z-10;
+  }
+}

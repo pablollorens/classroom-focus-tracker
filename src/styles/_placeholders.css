@@ -1,0 +1,81 @@
+/* ===========================================
+   PLACEHOLDERS - Clases base reutilizables
+   =========================================== */
+
+@layer components {
+  /* --- Superficies --- */
+  .surface-base {
+    @apply bg-[var(--surface-base)] text-[var(--text-primary)];
+  }
+
+  .surface-card {
+    @apply bg-[var(--surface-raised)] border border-[var(--border-default)] rounded-lg;
+  }
+
+  .surface-card-interactive {
+    @apply bg-[var(--surface-raised)] border border-[var(--border-default)] rounded-lg
+           hover:border-[var(--border-hover)] transition-all duration-200 cursor-pointer;
+  }
+
+  .surface-card-highlight {
+    @apply bg-[var(--surface-raised)] border border-[var(--color-primary)] rounded-lg
+           shadow-[var(--shadow-glow-primary)];
+  }
+
+  .surface-card-alert {
+    @apply bg-red-500/5 border border-red-500/30 rounded-lg
+           shadow-[var(--shadow-glow-red)];
+  }
+
+  /* --- Texto --- */
+  .text-heading {
+    @apply text-[var(--text-primary)] font-bold tracking-tight;
+  }
+
+  .text-heading-xl {
+    @apply text-[var(--text-primary)] text-3xl md:text-4xl font-extrabold tracking-tight;
+  }
+
+  .text-body {
+    @apply text-[var(--text-secondary)] font-normal;
+  }
+
+  .text-caption {
+    @apply text-[var(--text-muted)] text-xs font-medium;
+  }
+
+  .text-label {
+    @apply text-[var(--text-secondary)] text-xs font-bold uppercase tracking-wider;
+  }
+
+  /* --- Flexbox Utilities --- */
+  .flex-center {
+    @apply flex items-center justify-center;
+  }
+
+  .flex-between {
+    @apply flex items-center justify-between;
+  }
+
+  .flex-stack {
+    @apply flex flex-col gap-[var(--space-md)];
+  }
+
+  .flex-row-gap {
+    @apply flex items-center gap-[var(--space-md)];
+  }
+
+  /* --- Interactivos --- */
+  .interactive-base {
+    @apply transition-all duration-200 cursor-pointer;
+  }
+
+  .interactive-hover {
+    @apply transition-all duration-200 cursor-pointer hover:bg-[var(--surface-overlay)];
+  }
+
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]
+           focus:ring-offset-2 focus:ring-offset-[var(--surface-base)];
+  }
+}

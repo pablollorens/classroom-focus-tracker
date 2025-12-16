@@ -1,0 +1,54 @@
+/* ===========================================
+   FORMS
+   =========================================== */
+
+@layer components {
+  .form-group {
+    @apply flex flex-col gap-1.5;
+  }
+
+  .form-label {
+    @apply text-label;
+  }
+
+  .form-input {
+    @apply input-base;
+  }
+
+  .form-input-icon-wrapper {
+    @apply relative;
+  }
+
+  .form-input-icon {
+    @apply absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)];
+  }
+
+  .form-select {
+    @apply input-base appearance-none cursor-pointer pr-10;
+  }
+
+  .form-select-wrapper {
+    @apply relative;
+  }
+
+  .form-select-icon {
+    @apply absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none;
+  }
+
+  .form-textarea {
+    @apply input-base resize-none min-h-[80px];
+  }
+
+  .form-checkbox {
+    @apply size-4 rounded border-[var(--border-default)] bg-[var(--surface-darker)]
+           text-[var(--color-primary)] focus:ring-[var(--color-primary)];
+  }
+
+  .form-error {
+    @apply text-red-400 text-xs mt-1;
+  }
+
+  .form-hint {
+    @apply text-[var(--text-muted)] text-xs mt-1;
+  }
+}

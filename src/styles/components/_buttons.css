@@ -1,0 +1,61 @@
+/* ===========================================
+   BUTTONS
+   =========================================== */
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2
+           font-bold text-sm rounded-lg
+           transition-all duration-200
+           focus-ring disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Tamaños */
+  .btn-xs {
+    @apply h-7 px-2 text-xs;
+  }
+
+  .btn-sm {
+    @apply h-8 px-3 text-xs;
+  }
+
+  .btn-md {
+    @apply h-10 px-4;
+  }
+
+  .btn-lg {
+    @apply h-12 px-6;
+  }
+
+  /* Variantes */
+  .btn-primary {
+    @apply btn bg-[var(--color-primary)] text-white
+           hover:bg-[var(--color-primary-hover)]
+           shadow-lg shadow-blue-900/20;
+  }
+
+  .btn-secondary {
+    @apply btn bg-[var(--surface-overlay)] text-white
+           border border-[var(--border-default)]
+           hover:bg-[var(--border-hover)];
+  }
+
+  .btn-danger {
+    @apply btn bg-red-500/10 text-red-400
+           border border-red-500/20
+           hover:bg-red-500/20;
+  }
+
+  .btn-ghost {
+    @apply btn bg-transparent text-[var(--text-secondary)]
+           hover:bg-[var(--surface-overlay)] hover:text-white;
+  }
+
+  .btn-icon {
+    @apply btn p-0 size-10;
+  }
+
+  .btn-icon-sm {
+    @apply btn p-0 size-8;
+  }
+}

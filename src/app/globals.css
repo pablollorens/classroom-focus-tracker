@@ -1,0 +1,101 @@
+@import 'tailwindcss';
+
+/* === Design System === */
+@import '../styles/_variables.css';
+@import '../styles/_placeholders.css';
+@import '../styles/_mixins.css';
+
+/* === Components === */
+@import '../styles/components/_buttons.css';
+@import '../styles/components/_forms.css';
+@import '../styles/components/_cards.css';
+@import '../styles/components/_calendar.css';
+
+/* === Layouts === */
+@import '../styles/layouts/_sidebar.css';
+
+/* === Fonts === */
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Noto+Sans:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+
+/* === Theme Configuration === */
+@theme {
+  --font-display: 'Manrope', sans-serif;
+  --font-body: 'Noto Sans', sans-serif;
+
+  --color-primary: #137fec;
+  --color-primary-hover: #1171d4;
+  --color-background: #101922;
+  --color-surface: #1a242d;
+  --color-surface-darker: #111418;
+  --color-border: #283039;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #9dabb9;
+  --color-text-muted: #586370;
+
+  --color-status-active: #137fec;
+  --color-status-idle: #f59e0b;
+  --color-status-distracted: #ef4444;
+  --color-status-offline: #6b7280;
+}
+
+/* === Base Styles === */
+@layer base {
+  * {
+    @apply border-[var(--border-default)];
+  }
+
+  body {
+    @apply bg-[var(--surface-base)] text-[var(--text-primary)] antialiased;
+    font-family: var(--font-display), sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply text-heading;
+  }
+}
+
+/* === Material Symbols Config === */
+.material-symbols-outlined {
+  font-variation-settings:
+    'FILL' 0,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 24;
+}
+
+.material-symbols-outlined.filled {
+  font-variation-settings:
+    'FILL' 1,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 24;
+}
+
+/* === Animations === */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(19, 127, 236, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(19, 127, 236, 0.3);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3s infinite ease-in-out;
+}
+
+/* === Scrollbar Polish === */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-[var(--surface-darker)];
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-[var(--border-default)] rounded-full hover:bg-[var(--border-hover)];
+}

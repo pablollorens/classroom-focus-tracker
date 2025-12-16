@@ -1,0 +1,76 @@
+/* ===========================================
+   CARDS
+   =========================================== */
+
+@layer components {
+  /* --- Session Card (Dashboard) --- */
+  .card-session {
+    @apply surface-card overflow-hidden flex flex-col sm:flex-row
+           hover:border-[var(--color-primary)]/40 transition-all;
+  }
+
+  .card-session-image {
+    @apply w-full sm:w-48 lg:w-56 h-48 sm:h-auto bg-cover bg-center relative shrink-0;
+  }
+
+  .card-session-content {
+    @apply flex-1 p-5 flex flex-col justify-between;
+  }
+
+  /* --- Group Card (Dashboard) --- */
+  .card-group {
+    @apply surface-card-interactive p-4 flex flex-col gap-3;
+  }
+
+  .card-group-image {
+    @apply w-full aspect-video bg-[var(--surface-overlay)] rounded-lg bg-cover bg-center relative;
+  }
+
+  /* --- Resource Card (Library) --- */
+  .card-resource {
+    @apply surface-card-interactive flex flex-col h-64 overflow-hidden
+           hover:shadow-lg hover:-translate-y-1;
+  }
+
+  .card-resource-preview {
+    @apply h-32 w-full flex-center bg-[var(--surface-hover)] rounded-t-lg relative;
+  }
+
+  .card-resource-content {
+    @apply p-4 flex flex-col flex-1;
+  }
+
+  /* --- Student Card (Session) --- */
+  .card-student-base {
+    @apply relative rounded-xl p-4 border transition-all;
+  }
+
+  .card-student-active {
+    @apply card-student-base bg-[var(--surface-overlay)] border-transparent
+           hover:border-[var(--border-hover)];
+  }
+
+  .card-student-distracted {
+    @apply card-student-base bg-[#1c2026] border-red-500/30
+           hover:border-red-500/60 shadow-[var(--shadow-glow-red)];
+  }
+
+  .card-student-idle {
+    @apply card-student-base bg-[var(--surface-overlay)] border-transparent
+           hover:border-amber-500/30;
+  }
+
+  .card-student-offline {
+    @apply card-student-base bg-[#161a1f] border-transparent opacity-70
+           hover:opacity-100;
+  }
+
+  /* --- Stats Card --- */
+  .card-stats {
+    @apply surface-card p-5 flex flex-col gap-1;
+  }
+
+  .card-stats-alert {
+    @apply border-red-900/30 bg-red-900/10;
+  }
+}
