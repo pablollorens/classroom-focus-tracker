@@ -2,75 +2,178 @@
    CARDS
    =========================================== */
 
-@layer components {
-  /* --- Session Card (Dashboard) --- */
+/* --- Session Card (Dashboard) --- */
+.card-session {
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border-default);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.2s ease;
+}
+
+@media (min-width: 640px) {
   .card-session {
-    @apply surface-card overflow-hidden flex flex-col sm:flex-row
-           hover:border-[var(--color-primary)]/40 transition-all;
+    flex-direction: row;
   }
+}
 
+.card-session:hover {
+  border-color: rgb(19 127 236 / 0.4);
+}
+
+.card-session-image {
+  width: 100%;
+  height: 12rem;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  flex-shrink: 0;
+}
+
+@media (min-width: 640px) {
   .card-session-image {
-    @apply w-full sm:w-48 lg:w-56 h-48 sm:h-auto bg-cover bg-center relative shrink-0;
+    width: 12rem;
+    height: auto;
   }
+}
 
-  .card-session-content {
-    @apply flex-1 p-5 flex flex-col justify-between;
+@media (min-width: 1024px) {
+  .card-session-image {
+    width: 14rem;
   }
+}
 
-  /* --- Group Card (Dashboard) --- */
-  .card-group {
-    @apply surface-card-interactive p-4 flex flex-col gap-3;
-  }
+.card-session-content {
+  flex: 1;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
 
-  .card-group-image {
-    @apply w-full aspect-video bg-[var(--surface-overlay)] rounded-lg bg-cover bg-center relative;
-  }
+/* --- Group Card (Dashboard) --- */
+.card-group {
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border-default);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
 
-  /* --- Resource Card (Library) --- */
-  .card-resource {
-    @apply surface-card-interactive flex flex-col h-64 overflow-hidden
-           hover:shadow-lg hover:-translate-y-1;
-  }
+.card-group:hover {
+  border-color: var(--border-hover);
+}
 
-  .card-resource-preview {
-    @apply h-32 w-full flex-center bg-[var(--surface-hover)] rounded-t-lg relative;
-  }
+.card-group-image {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background-color: var(--surface-overlay);
+  border-radius: 0.5rem;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
 
-  .card-resource-content {
-    @apply p-4 flex flex-col flex-1;
-  }
+/* --- Resource Card (Library) --- */
+.card-resource {
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border-default);
+  border-radius: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  height: 16rem;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
 
-  /* --- Student Card (Session) --- */
-  .card-student-base {
-    @apply relative rounded-xl p-4 border transition-all;
-  }
+.card-resource:hover {
+  border-color: var(--border-hover);
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.2);
+  transform: translateY(-0.25rem);
+}
 
-  .card-student-active {
-    @apply card-student-base bg-[var(--surface-overlay)] border-transparent
-           hover:border-[var(--border-hover)];
-  }
+.card-resource-preview {
+  height: 8rem;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--surface-hover);
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+  position: relative;
+}
 
-  .card-student-distracted {
-    @apply card-student-base bg-[#1c2026] border-red-500/30
-           hover:border-red-500/60 shadow-[var(--shadow-glow-red)];
-  }
+.card-resource-content {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
 
-  .card-student-idle {
-    @apply card-student-base bg-[var(--surface-overlay)] border-transparent
-           hover:border-amber-500/30;
-  }
+/* --- Student Card (Session) --- */
+.card-student-base {
+  position: relative;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
 
-  .card-student-offline {
-    @apply card-student-base bg-[#161a1f] border-transparent opacity-70
-           hover:opacity-100;
-  }
+.card-student-active {
+  background-color: var(--surface-overlay);
+}
 
-  /* --- Stats Card --- */
-  .card-stats {
-    @apply surface-card p-5 flex flex-col gap-1;
-  }
+.card-student-active:hover {
+  border-color: var(--border-hover);
+}
 
-  .card-stats-alert {
-    @apply border-red-900/30 bg-red-900/10;
-  }
+.card-student-distracted {
+  background-color: #1c2026;
+  border-color: rgb(239 68 68 / 0.3);
+  box-shadow: 0 0 15px rgb(239 68 68 / 0.3);
+}
+
+.card-student-distracted:hover {
+  border-color: rgb(239 68 68 / 0.6);
+}
+
+.card-student-idle {
+  background-color: var(--surface-overlay);
+}
+
+.card-student-idle:hover {
+  border-color: rgb(245 158 11 / 0.3);
+}
+
+.card-student-offline {
+  background-color: #161a1f;
+  opacity: 0.7;
+}
+
+.card-student-offline:hover {
+  opacity: 1;
+}
+
+/* --- Stats Card --- */
+.card-stats {
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border-default);
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.card-stats-alert {
+  border-color: rgb(127 29 29 / 0.3);
+  background-color: rgb(127 29 29 / 0.1);
 }

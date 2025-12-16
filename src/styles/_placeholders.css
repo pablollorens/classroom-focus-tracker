@@ -2,80 +2,119 @@
    PLACEHOLDERS - Clases base reutilizables
    =========================================== */
 
-@layer components {
-  /* --- Superficies --- */
-  .surface-base {
-    @apply bg-[var(--surface-base)] text-[var(--text-primary)];
-  }
+/* --- Flexbox Utilities --- */
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-  .surface-card {
-    @apply bg-[var(--surface-raised)] border border-[var(--border-default)] rounded-lg;
-  }
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
 
-  .surface-card-interactive {
-    @apply bg-[var(--surface-raised)] border border-[var(--border-default)] rounded-lg
-           hover:border-[var(--border-hover)] transition-all duration-200 cursor-pointer;
-  }
+.flex-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
 
-  .surface-card-highlight {
-    @apply bg-[var(--surface-raised)] border border-[var(--color-primary)] rounded-lg
-           shadow-[var(--shadow-glow-primary)];
-  }
+.flex-row-gap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
 
-  .surface-card-alert {
-    @apply bg-red-500/5 border border-red-500/30 rounded-lg
-           shadow-[var(--shadow-glow-red)];
-  }
+/* --- Superficies --- */
+.surface-base {
+  background-color: var(--surface-base);
+  color: var(--text-primary);
+}
 
-  /* --- Texto --- */
-  .text-heading {
-    @apply text-[var(--text-primary)] font-bold tracking-tight;
-  }
+.surface-card {
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border-default);
+  border-radius: 0.5rem;
+}
 
+.surface-card-interactive {
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border-default);
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.surface-card-interactive:hover {
+  border-color: var(--border-hover);
+}
+
+.surface-card-highlight {
+  background-color: var(--surface-raised);
+  border: 1px solid var(--color-primary);
+  border-radius: 0.5rem;
+  box-shadow: var(--shadow-glow-primary);
+}
+
+.surface-card-alert {
+  background-color: rgb(239 68 68 / 0.05);
+  border: 1px solid rgb(239 68 68 / 0.3);
+  border-radius: 0.5rem;
+  box-shadow: var(--shadow-glow-red);
+}
+
+/* --- Texto --- */
+.text-heading {
+  color: var(--text-primary);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+.text-heading-xl {
+  color: var(--text-primary);
+  font-size: 1.875rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+@media (min-width: 768px) {
   .text-heading-xl {
-    @apply text-[var(--text-primary)] text-3xl md:text-4xl font-extrabold tracking-tight;
+    font-size: 2.25rem;
   }
+}
 
-  .text-body {
-    @apply text-[var(--text-secondary)] font-normal;
-  }
+.text-body {
+  color: var(--text-secondary);
+  font-weight: 400;
+}
 
-  .text-caption {
-    @apply text-[var(--text-muted)] text-xs font-medium;
-  }
+.text-caption {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
 
-  .text-label {
-    @apply text-[var(--text-secondary)] text-xs font-bold uppercase tracking-wider;
-  }
+.text-label {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
 
-  /* --- Flexbox Utilities --- */
-  .flex-center {
-    @apply flex items-center justify-center;
-  }
+/* --- Interactivos --- */
+.interactive-base {
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
 
-  .flex-between {
-    @apply flex items-center justify-between;
-  }
+.interactive-hover {
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
 
-  .flex-stack {
-    @apply flex flex-col gap-[var(--space-md)];
-  }
-
-  .flex-row-gap {
-    @apply flex items-center gap-[var(--space-md)];
-  }
-
-  /* --- Interactivos --- */
-  .interactive-base {
-    @apply transition-all duration-200 cursor-pointer;
-  }
-
-  .interactive-hover {
-    @apply transition-all duration-200 cursor-pointer hover:bg-[var(--surface-overlay)];
-  }
-
-  .focus-ring {
-    @apply focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]
-           focus:ring-offset-2 focus:ring-offset-[var(--surface-base)];
-  }
+.interactive-hover:hover {
+  background-color: var(--surface-overlay);
 }

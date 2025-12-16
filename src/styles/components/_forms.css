@@ -2,53 +2,104 @@
    FORMS
    =========================================== */
 
-@layer components {
-  .form-group {
-    @apply flex flex-col gap-1.5;
-  }
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
 
-  .form-label {
-    @apply text-label;
-  }
+.form-label {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
 
-  .form-input {
-    @apply input-base;
-  }
+.form-input {
+  width: 100%;
+  background-color: var(--surface-darker);
+  border: 1px solid var(--border-default);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
 
-  .form-input-icon-wrapper {
-    @apply relative;
-  }
+.form-input::placeholder {
+  color: var(--text-muted);
+}
 
-  .form-input-icon {
-    @apply absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)];
-  }
+.form-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
 
-  .form-select {
-    @apply input-base appearance-none cursor-pointer pr-10;
-  }
+.form-select {
+  width: 100%;
+  background-color: var(--surface-darker);
+  border: 1px solid var(--border-default);
+  border-radius: 0.5rem;
+  padding: 0.5rem 2.5rem 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  appearance: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%239dabb9' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5rem 1.5rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
 
-  .form-select-wrapper {
-    @apply relative;
-  }
+.form-select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
 
-  .form-select-icon {
-    @apply absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none;
-  }
+.form-textarea {
+  width: 100%;
+  background-color: var(--surface-darker);
+  border: 1px solid var(--border-default);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  resize: none;
+  min-height: 80px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
 
-  .form-textarea {
-    @apply input-base resize-none min-h-[80px];
-  }
+.form-textarea::placeholder {
+  color: var(--text-muted);
+}
 
-  .form-checkbox {
-    @apply size-4 rounded border-[var(--border-default)] bg-[var(--surface-darker)]
-           text-[var(--color-primary)] focus:ring-[var(--color-primary)];
-  }
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
 
-  .form-error {
-    @apply text-red-400 text-xs mt-1;
-  }
+.form-checkbox {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 0.25rem;
+  border: 1px solid var(--border-default);
+  background-color: var(--surface-darker);
+  accent-color: var(--color-primary);
+}
 
-  .form-hint {
-    @apply text-[var(--text-muted)] text-xs mt-1;
-  }
+.form-error {
+  color: rgb(248 113 113);
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.form-hint {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
 }

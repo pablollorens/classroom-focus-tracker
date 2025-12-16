@@ -2,126 +2,172 @@
    MIXINS - Composiciones de estilos
    =========================================== */
 
-@layer components {
-  /* --- Icon Containers --- */
-  .icon-container-sm {
-    @apply flex-center size-8 rounded-lg;
-  }
+/* --- Icon Containers (fuera de @layer para uso en @apply) --- */
+.icon-container-sm {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+}
 
-  .icon-container-md {
-    @apply flex-center size-10 rounded-lg;
-  }
+.icon-container-md {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.5rem;
+}
 
-  .icon-container-lg {
-    @apply flex-center size-12 rounded-xl;
-  }
+.icon-container-lg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.75rem;
+}
 
-  .icon-primary {
-    @apply bg-[var(--color-primary-muted)] text-[var(--color-primary)];
-  }
+.icon-primary {
+  background-color: var(--color-primary-muted);
+  color: var(--color-primary);
+}
 
-  .icon-muted {
-    @apply bg-[var(--surface-overlay)] text-[var(--text-secondary)];
-  }
+.icon-muted {
+  background-color: var(--surface-overlay);
+  color: var(--text-secondary);
+}
 
-  /* --- Status Dots --- */
-  .status-dot {
-    @apply size-2 rounded-full;
-  }
+/* --- Status Dots --- */
+.status-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+}
 
-  .status-dot-active {
-    @apply size-2 rounded-full bg-[var(--status-active)] shadow-[0_0_8px_var(--status-active)];
-  }
+.status-dot-active {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background-color: var(--status-active);
+  box-shadow: 0 0 8px var(--status-active);
+}
 
-  .status-dot-idle {
-    @apply size-2 rounded-full bg-[var(--status-idle)];
-  }
+.status-dot-idle {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background-color: var(--status-idle);
+}
 
-  .status-dot-distracted {
-    @apply size-2 rounded-full bg-[var(--status-distracted)] animate-pulse;
-  }
+.status-dot-distracted {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background-color: var(--status-distracted);
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
 
-  .status-dot-offline {
-    @apply size-2 rounded-full bg-[var(--status-offline)];
-  }
+.status-dot-offline {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background-color: var(--status-offline);
+}
 
-  /* --- Status Badges --- */
-  .badge-base {
-    @apply inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide;
-  }
+/* --- Status Badges --- */
+.badge-base {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
 
-  .badge-live {
-    @apply badge-base bg-red-500 text-white animate-pulse;
-  }
+.badge-live {
+  background-color: rgb(239, 68, 68);
+  color: white;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
 
-  .badge-active {
-    @apply badge-base bg-[var(--color-primary-muted)] text-[var(--color-primary)]
-           border border-[var(--color-primary)]/20;
-  }
+.badge-active {
+  background-color: var(--color-primary-muted);
+  color: var(--color-primary);
+  border: 1px solid rgb(19 127 236 / 0.2);
+}
 
-  .badge-idle {
-    @apply badge-base bg-amber-500/10 text-amber-500 border border-amber-500/20;
-  }
+.badge-idle {
+  background-color: rgb(245 158 11 / 0.1);
+  color: rgb(245 158 11);
+  border: 1px solid rgb(245 158 11 / 0.2);
+}
 
-  .badge-distracted {
-    @apply badge-base bg-red-500/10 text-red-400 border border-red-500/20;
-  }
+.badge-distracted {
+  background-color: rgb(239 68 68 / 0.1);
+  color: rgb(248 113 113);
+  border: 1px solid rgb(239 68 68 / 0.2);
+}
 
-  .badge-offline {
-    @apply badge-base bg-gray-500/10 text-gray-400 border border-gray-500/20;
-  }
+.badge-offline {
+  background-color: rgb(107 114 128 / 0.1);
+  color: rgb(156 163 175);
+  border: 1px solid rgb(107 114 128 / 0.2);
+}
 
-  .badge-success {
-    @apply badge-base bg-green-500/10 text-green-400 border border-green-500/20;
-  }
+.badge-success {
+  background-color: rgb(16 185 129 / 0.1);
+  color: rgb(52 211 153);
+  border: 1px solid rgb(16 185 129 / 0.2);
+}
 
-  /* --- Cards especializados --- */
-  .card-lesson {
-    @apply surface-card-interactive p-4 flex flex-col gap-3 hover:shadow-md hover:-translate-y-0.5;
-  }
+/* --- Inputs --- */
+.input-base {
+  width: 100%;
+  background-color: var(--surface-darker);
+  border: 1px solid var(--border-default);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
 
-  .card-student {
-    @apply surface-card p-4 flex flex-col items-center gap-3;
-  }
+.input-base::placeholder {
+  color: var(--text-muted);
+}
 
-  .card-student-alert {
-    @apply surface-card-alert p-4 flex flex-col items-center gap-3;
-  }
+.input-base:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
 
-  /* --- Inputs --- */
-  .input-base {
-    @apply w-full bg-[var(--surface-darker)] border border-[var(--border-default)]
-           rounded-lg px-3 py-2 text-sm text-[var(--text-primary)]
-           placeholder:text-[var(--text-muted)]
-           focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]
-           focus:outline-none transition-colors;
-  }
+/* --- Scrollbar --- */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-default) var(--surface-base);
+}
 
-  .input-with-icon {
-    @apply input-base pl-10;
-  }
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
 
-  /* --- Scrollbar --- */
-  .custom-scrollbar {
-    scrollbar-width: thin;
-    scrollbar-color: var(--border-default) var(--surface-base);
-  }
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: var(--surface-base);
+}
 
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: 3px;
+}
 
-  .custom-scrollbar::-webkit-scrollbar-track {
-    background: var(--surface-base);
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: var(--border-default);
-    border-radius: 3px;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: var(--border-hover);
-  }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--border-hover);
 }

@@ -2,60 +2,104 @@
    BUTTONS
    =========================================== */
 
-@layer components {
-  .btn {
-    @apply inline-flex items-center justify-center gap-2
-           font-bold text-sm rounded-lg
-           transition-all duration-200
-           focus-ring disabled:opacity-50 disabled:cursor-not-allowed;
-  }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  font-size: 0.875rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
 
-  /* Tamaños */
-  .btn-xs {
-    @apply h-7 px-2 text-xs;
-  }
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
-  .btn-sm {
-    @apply h-8 px-3 text-xs;
-  }
+.btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--surface-base), 0 0 0 4px var(--color-primary);
+}
 
-  .btn-md {
-    @apply h-10 px-4;
-  }
+/* Sizes */
+.btn-xs {
+  height: 1.75rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  font-size: 0.75rem;
+}
 
-  .btn-lg {
-    @apply h-12 px-6;
-  }
+.btn-sm {
+  height: 2rem;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  font-size: 0.75rem;
+}
 
-  /* Variantes */
-  .btn-primary {
-    @apply btn bg-[var(--color-primary)] text-white
-           hover:bg-[var(--color-primary-hover)]
-           shadow-lg shadow-blue-900/20;
-  }
+.btn-md {
+  height: 2.5rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
 
-  .btn-secondary {
-    @apply btn bg-[var(--surface-overlay)] text-white
-           border border-[var(--border-default)]
-           hover:bg-[var(--border-hover)];
-  }
+.btn-lg {
+  height: 3rem;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
 
-  .btn-danger {
-    @apply btn bg-red-500/10 text-red-400
-           border border-red-500/20
-           hover:bg-red-500/20;
-  }
+/* Variants */
+.btn-primary {
+  background-color: var(--color-primary);
+  color: white;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.2);
+}
 
-  .btn-ghost {
-    @apply btn bg-transparent text-[var(--text-secondary)]
-           hover:bg-[var(--surface-overlay)] hover:text-white;
-  }
+.btn-primary:hover {
+  background-color: var(--color-primary-hover);
+}
 
-  .btn-icon {
-    @apply btn p-0 size-10;
-  }
+.btn-secondary {
+  background-color: var(--surface-overlay);
+  color: white;
+  border: 1px solid var(--border-default);
+}
 
-  .btn-icon-sm {
-    @apply btn p-0 size-8;
-  }
+.btn-secondary:hover {
+  background-color: var(--border-hover);
+}
+
+.btn-danger {
+  background-color: rgb(239 68 68 / 0.1);
+  color: rgb(248 113 113);
+  border: 1px solid rgb(239 68 68 / 0.2);
+}
+
+.btn-danger:hover {
+  background-color: rgb(239 68 68 / 0.2);
+}
+
+.btn-ghost {
+  background-color: transparent;
+  color: var(--text-secondary);
+}
+
+.btn-ghost:hover {
+  background-color: var(--surface-overlay);
+  color: white;
+}
+
+.btn-icon {
+  padding: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.btn-icon-sm {
+  padding: 0;
+  width: 2rem;
+  height: 2rem;
 }
