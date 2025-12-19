@@ -148,7 +148,7 @@ model SessionAttendance {
 model ScheduledClass {
   id               String    @id @default(cuid())
   teacherId        String
-  groupId          String
+  groupId          String?   // Opcional - se asigna después
   preparedLessonId String
   dayOfWeek        Int?      // 0-6 para recurrentes (0=Domingo), null para puntuales
   specificDate     DateTime? // fecha específica para puntuales
@@ -160,6 +160,6 @@ model ScheduledClass {
   updatedAt        DateTime  @updatedAt
 
   teacher        Teacher        @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-  group          Group          @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  group          Group?         @relation(fields: [groupId], references: [id], onDelete: Cascade)
   preparedLesson PreparedLesson @relation(fields: [preparedLessonId], references: [id], onDelete: Cascade)
 }
