@@ -3,16 +3,17 @@
 import { useState, useEffect, use, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { PageContainer } from "@/components/layout";
 import { DistractionTimer } from "@/components/DistractionTimer";
 import { Toast } from "@/components/Toast";
-import { Avatar, StatusDot } from "@/components/common";
+import { Avatar, StatusDot, ConfirmModal } from "@/components/common";
 import { supabase } from "@/lib/supabase";
 
 interface SessionDetails {
   id: string;
   isActive: boolean;
   password: string;
-  createdAt: string;
+  startedAt: string;
   preparedLesson: {
     title: string;
   };
@@ -49,8 +50,8 @@ export default function TeacherSessionPage({
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [, setTick] = useState(0);
-  const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
+  const [showEndSessionModal, setShowEndSessionModal] = useState(false);
 
   // Periodic re-render every second for countdown timer
   useEffect(() => {
@@ -129,7 +130,6 @@ export default function TeacherSessionPage({
   }, [sessionId, session]);
 
   const handleEndSession = async () => {
-    if (!confirm("¿Seguro que deseas terminar esta sesión?")) return;
     try {
       await fetch(`/api/sessions/${sessionId}`, { method: "DELETE" });
       router.push("/dashboard");
@@ -137,6 +137,7 @@ export default function TeacherSessionPage({
       setToastMessage("Error al terminar sesión");
       setShowToast(true);
     }
+    setShowEndSessionModal(false);
   };
 
   // Status calculations
@@ -178,10 +179,10 @@ export default function TeacherSessionPage({
     return result;
   }, [attendance]);
 
-  // Session timer
-  const sessionDuration = useMemo(() => {
-    if (!session) return "00:00";
-    const start = new Date(session.createdAt).getTime();
+  // Session timer - calculated every render (triggered by tick interval)
+  const sessionDuration = (() => {
+    if (!session?.startedAt) return "00:00";
+    const start = new Date(session.startedAt).getTime();
     const now = new Date().getTime();
     const diff = Math.floor((now - start) / 1000);
     const hours = Math.floor(diff / 3600);
@@ -195,7 +196,7 @@ export default function TeacherSessionPage({
     return `${minutes.toString().padStart(2, "0")}:${seconds
       .toString()
       .padStart(2, "0")}`;
-  }, [session]);
+  })();
 
   // Filter attendance
   const filteredAttendance = useMemo(() => {
@@ -204,21 +205,9 @@ export default function TeacherSessionPage({
         record.currentStatus,
         record.lastHeartbeat
       );
-      const matchesFilter =
-        statusFilter === "ALL" || effectiveStatus === statusFilter;
-      const matchesSearch =
-        record.student.firstName
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase()) ||
-        record.student.lastName
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase()) ||
-        record.student.username
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase());
-      return matchesFilter && matchesSearch;
+      return statusFilter === "ALL" || effectiveStatus === statusFilter;
     });
-  }, [attendance, statusFilter, searchQuery]);
+  }, [attendance, statusFilter]);
 
   // Sort by status priority: distracted first, then idle, then active, then offline
   const sortedAttendance = useMemo(() => {
@@ -238,402 +227,325 @@ export default function TeacherSessionPage({
 
   if (loading) {
     return (
-      <div className="flex-center h-screen">
-        <div className="flex flex-col items-center gap-3">
-          <div className="size-8 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
-          <span className="text-body">Cargando sesión...</span>
+      <PageContainer>
+        <div className="flex-center h-64">
+          <div className="flex flex-col items-center gap-3">
+            <div className="size-8 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
+            <span className="text-body">Cargando sesión...</span>
+          </div>
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
   if (!session) {
     return (
-      <div className="flex-center h-screen flex-col gap-4">
-        <span className="material-symbols-outlined text-6xl text-[var(--text-muted)]">
-          error
-        </span>
-        <h2 className="text-heading text-xl">Sesión no encontrada</h2>
-        <Link href="/dashboard" className="btn-primary btn-md">
-          Volver al Dashboard
-        </Link>
-      </div>
+      <PageContainer>
+        <div className="flex-center h-64 flex-col gap-4">
+          <span className="material-symbols-outlined text-6xl text-[var(--text-muted)]">
+            error
+          </span>
+          <h2 className="text-heading text-xl">Sesión no encontrada</h2>
+          <Link href="/dashboard" className="btn-primary btn-md">
+            Volver al Dashboard
+          </Link>
+        </div>
+      </PageContainer>
     );
   }
 
   return (
-    <div className="flex h-screen">
-      {/* Sidebar */}
-      <aside className="hidden lg:flex flex-col w-72 bg-[var(--surface-darker)] border-r border-[var(--border-default)]">
-        {/* Logo */}
-        <div className="p-4 border-b border-[var(--border-default)]">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-primary)] to-blue-600 flex-center shadow-lg">
-              <span className="material-symbols-outlined text-white text-xl">
-                sensors
+    <PageContainer>
+      {/* Header Section */}
+      <section className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold uppercase tracking-wider">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
               </span>
-            </div>
-            <div>
-              <h1 className="text-heading text-sm">Sesión en Vivo</h1>
-              <p className="text-caption">{session.group.name}</p>
-            </div>
+              En Vivo
+            </span>
+            <span className="text-caption">•</span>
+            <span className="text-caption">{session.group?.name}</span>
           </div>
+          <h1 className="text-heading-xl">
+            {session.preparedLesson?.title || "Sesión en Vivo"}
+          </h1>
         </div>
-
-        {/* Timer */}
-        <div className="p-4 border-b border-[var(--border-default)]">
-          <p className="text-label mb-2">Duración</p>
-          <div className="text-4xl font-bold font-mono text-[var(--text-primary)]">
-            {sessionDuration}
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className="p-4 space-y-3 flex-1">
-          <p className="text-label">Estadísticas</p>
-
-          <button
-            onClick={() => setStatusFilter("ACTIVE")}
-            className={`w-full p-3 rounded-lg flex items-center gap-3 transition-colors ${
-              statusFilter === "ACTIVE"
-                ? "bg-green-500/20 border border-green-500/30"
-                : "hover:bg-[var(--surface-hover)]"
-            }`}
-          >
-            <StatusDot status="active" />
-            <span className="flex-1 text-left text-sm">Activos</span>
-            <span className="text-xl font-bold text-green-400">
-              {stats.active}
-            </span>
-          </button>
-
-          <button
-            onClick={() => setStatusFilter("DISTRACTED")}
-            className={`w-full p-3 rounded-lg flex items-center gap-3 transition-colors ${
-              statusFilter === "DISTRACTED"
-                ? "bg-red-500/20 border border-red-500/30"
-                : "hover:bg-[var(--surface-hover)]"
-            }`}
-          >
-            <StatusDot status="distracted" />
-            <span className="flex-1 text-left text-sm">Distraídos</span>
-            <span className="text-xl font-bold text-red-400">
-              {stats.distracted}
-            </span>
-          </button>
-
-          <button
-            onClick={() => setStatusFilter("IDLE")}
-            className={`w-full p-3 rounded-lg flex items-center gap-3 transition-colors ${
-              statusFilter === "IDLE"
-                ? "bg-yellow-500/20 border border-yellow-500/30"
-                : "hover:bg-[var(--surface-hover)]"
-            }`}
-          >
-            <StatusDot status="idle" />
-            <span className="flex-1 text-left text-sm">Inactivos</span>
-            <span className="text-xl font-bold text-yellow-400">
-              {stats.idle}
-            </span>
-          </button>
-
-          <button
-            onClick={() => setStatusFilter("OFFLINE")}
-            className={`w-full p-3 rounded-lg flex items-center gap-3 transition-colors ${
-              statusFilter === "OFFLINE"
-                ? "bg-gray-500/20 border border-gray-500/30"
-                : "hover:bg-[var(--surface-hover)]"
-            }`}
-          >
-            <StatusDot status="offline" />
-            <span className="flex-1 text-left text-sm">Desconectados</span>
-            <span className="text-xl font-bold text-gray-400">
-              {stats.offline}
-            </span>
-          </button>
-
-          {statusFilter !== "ALL" && (
+        <div className="flex items-center gap-3">
+          <div className="text-right">
+            <p className="text-caption text-xs">Código de acceso</p>
             <button
-              onClick={() => setStatusFilter("ALL")}
-              className="w-full p-2 text-sm text-[var(--color-primary)] hover:underline"
+              onClick={handleCopyPassword}
+              className="text-2xl font-bold font-mono text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] flex items-center gap-1"
             >
-              Ver todos
+              {session.password}
+              <span className="material-symbols-outlined text-lg">
+                content_copy
+              </span>
             </button>
-          )}
-        </div>
-
-        {/* End Session */}
-        <div className="p-4 border-t border-[var(--border-default)]">
-          <button onClick={handleEndSession} className="btn-danger w-full">
+          </div>
+          <button onClick={() => setShowEndSessionModal(true)} className="btn-danger btn-md">
             <span className="material-symbols-outlined text-lg">stop</span>
-            Terminar Sesión
+            <span className="hidden sm:inline">Terminar</span>
           </button>
         </div>
-      </aside>
+      </section>
 
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <header className="flex items-center justify-between p-4 border-b border-[var(--border-default)] bg-[var(--surface-base)]">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/dashboard"
-              className="lg:hidden p-2 rounded-lg hover:bg-[var(--surface-hover)]"
-            >
-              <span className="material-symbols-outlined">arrow_back</span>
-            </Link>
-            <div>
-              <h1 className="text-heading text-lg">
-                {session.preparedLesson.title}
-              </h1>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-caption lg:hidden">
-                  {session.group.name}
-                </span>
-                <span className="text-label lg:hidden">•</span>
-                <span className="lg:hidden text-caption font-mono">
-                  {sessionDuration}
-                </span>
-              </div>
-            </div>
+      {/* Stats Row */}
+      <section className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        {/* Duration */}
+        <div className="surface-card p-4 flex items-center gap-3">
+          <div className="icon-container-md icon-primary">
+            <span className="material-symbols-outlined">timer</span>
           </div>
-
-          {/* Session Code */}
-          <div className="flex items-center gap-3">
-            <div className="text-right hidden sm:block">
-              <p className="text-caption">Código de acceso</p>
-              <button
-                onClick={handleCopyPassword}
-                className="text-2xl font-bold font-mono text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] flex items-center gap-1"
-              >
-                {session.password}
-                <span className="material-symbols-outlined text-lg">
-                  content_copy
-                </span>
-              </button>
-            </div>
-            <button
-              onClick={handleEndSession}
-              className="btn-danger btn-sm lg:hidden"
-            >
-              <span className="material-symbols-outlined text-lg">stop</span>
-            </button>
+          <div>
+            <p className="text-2xl font-bold font-mono text-[var(--text-primary)]">
+              {sessionDuration}
+            </p>
+            <p className="text-caption text-xs">Duración</p>
           </div>
-        </header>
+        </div>
 
-        {/* Mobile Stats Bar */}
-        <div className="lg:hidden flex items-center gap-2 p-3 border-b border-[var(--border-default)] bg-[var(--surface-darker)] overflow-x-auto">
+        {/* Active */}
+        <button
+          onClick={() => setStatusFilter(statusFilter === "ACTIVE" ? "ALL" : "ACTIVE")}
+          className={`surface-card p-4 flex items-center gap-3 transition-all ${
+            statusFilter === "ACTIVE"
+              ? "ring-2 ring-green-500 bg-green-500/10"
+              : "hover:bg-[var(--surface-hover)]"
+          }`}
+        >
+          <div className="w-10 h-10 rounded-full bg-green-500/20 flex-center">
+            <StatusDot status="active" />
+          </div>
+          <div className="text-left">
+            <p className="text-2xl font-bold text-green-400">{stats.active}</p>
+            <p className="text-caption text-xs">Activos</p>
+          </div>
+        </button>
+
+        {/* Distracted */}
+        <button
+          onClick={() => setStatusFilter(statusFilter === "DISTRACTED" ? "ALL" : "DISTRACTED")}
+          className={`surface-card p-4 flex items-center gap-3 transition-all ${
+            statusFilter === "DISTRACTED"
+              ? "ring-2 ring-red-500 bg-red-500/10"
+              : "hover:bg-[var(--surface-hover)]"
+          }`}
+        >
+          <div className="w-10 h-10 rounded-full bg-red-500/20 flex-center">
+            <StatusDot status="distracted" />
+          </div>
+          <div className="text-left">
+            <p className="text-2xl font-bold text-red-400">{stats.distracted}</p>
+            <p className="text-caption text-xs">Distraídos</p>
+          </div>
+        </button>
+
+        {/* Idle */}
+        <button
+          onClick={() => setStatusFilter(statusFilter === "IDLE" ? "ALL" : "IDLE")}
+          className={`surface-card p-4 flex items-center gap-3 transition-all ${
+            statusFilter === "IDLE"
+              ? "ring-2 ring-yellow-500 bg-yellow-500/10"
+              : "hover:bg-[var(--surface-hover)]"
+          }`}
+        >
+          <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex-center">
+            <StatusDot status="idle" />
+          </div>
+          <div className="text-left">
+            <p className="text-2xl font-bold text-yellow-400">{stats.idle}</p>
+            <p className="text-caption text-xs">Inactivos</p>
+          </div>
+        </button>
+
+        {/* Offline */}
+        <button
+          onClick={() => setStatusFilter(statusFilter === "OFFLINE" ? "ALL" : "OFFLINE")}
+          className={`surface-card p-4 flex items-center gap-3 transition-all ${
+            statusFilter === "OFFLINE"
+              ? "ring-2 ring-gray-500 bg-gray-500/10"
+              : "hover:bg-[var(--surface-hover)]"
+          }`}
+        >
+          <div className="w-10 h-10 rounded-full bg-gray-500/20 flex-center">
+            <StatusDot status="offline" />
+          </div>
+          <div className="text-left">
+            <p className="text-2xl font-bold text-gray-400">{stats.offline}</p>
+            <p className="text-caption text-xs">Desconectados</p>
+          </div>
+        </button>
+      </section>
+
+      {/* Filter indicator */}
+      {statusFilter !== "ALL" && (
+        <div className="flex items-center gap-2">
+          <span className="text-body text-sm">
+            Filtrando por: <span className="font-semibold">{statusFilter === "ACTIVE" ? "Activos" : statusFilter === "DISTRACTED" ? "Distraídos" : statusFilter === "IDLE" ? "Inactivos" : "Desconectados"}</span>
+          </span>
           <button
             onClick={() => setStatusFilter("ALL")}
-            className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap ${
-              statusFilter === "ALL"
-                ? "bg-[var(--color-primary)] text-white"
-                : "bg-[var(--surface-overlay)] text-[var(--text-secondary)]"
-            }`}
+            className="text-[var(--color-primary)] text-sm hover:underline"
           >
-            Todos ({attendance.length})
-          </button>
-          <button
-            onClick={() => setStatusFilter("ACTIVE")}
-            className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap flex items-center gap-1 ${
-              statusFilter === "ACTIVE"
-                ? "bg-green-500 text-white"
-                : "bg-[var(--surface-overlay)] text-[var(--text-secondary)]"
-            }`}
-          >
-            <StatusDot status="active" />
-            {stats.active}
-          </button>
-          <button
-            onClick={() => setStatusFilter("DISTRACTED")}
-            className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap flex items-center gap-1 ${
-              statusFilter === "DISTRACTED"
-                ? "bg-red-500 text-white"
-                : "bg-[var(--surface-overlay)] text-[var(--text-secondary)]"
-            }`}
-          >
-            <StatusDot status="distracted" />
-            {stats.distracted}
-          </button>
-          <button
-            onClick={() => setStatusFilter("IDLE")}
-            className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap flex items-center gap-1 ${
-              statusFilter === "IDLE"
-                ? "bg-yellow-500 text-white"
-                : "bg-[var(--surface-overlay)] text-[var(--text-secondary)]"
-            }`}
-          >
-            <StatusDot status="idle" />
-            {stats.idle}
-          </button>
-          <button
-            onClick={() => setStatusFilter("OFFLINE")}
-            className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap flex items-center gap-1 ${
-              statusFilter === "OFFLINE"
-                ? "bg-gray-500 text-white"
-                : "bg-[var(--surface-overlay)] text-[var(--text-secondary)]"
-            }`}
-          >
-            <StatusDot status="offline" />
-            {stats.offline}
+            Ver todos
           </button>
         </div>
+      )}
 
-        {/* Search */}
-        <div className="p-4 border-b border-[var(--border-default)]">
-          <div className="relative max-w-md">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]">
-              search
+      {/* Students Grid */}
+      <section>
+        {sortedAttendance.length === 0 ? (
+          <div className="surface-card p-12 flex-center flex-col gap-4">
+            <span className="material-symbols-outlined text-6xl text-[var(--text-muted)]">
+              {attendance.length === 0 ? "group_off" : "search_off"}
             </span>
-            <input
-              type="text"
-              placeholder="Buscar estudiantes..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="form-input pl-10 w-full"
-            />
-          </div>
-        </div>
-
-        {/* Students Grid */}
-        <div className="flex-1 overflow-y-auto p-4">
-          {sortedAttendance.length === 0 ? (
-            <div className="flex-center h-full flex-col gap-4">
-              <span className="material-symbols-outlined text-6xl text-[var(--text-muted)]">
-                {attendance.length === 0 ? "group_off" : "search_off"}
-              </span>
-              <div className="text-center">
-                <h3 className="text-heading text-lg mb-1">
-                  {attendance.length === 0
-                    ? "Esperando estudiantes"
-                    : "Sin resultados"}
-                </h3>
-                <p className="text-body">
-                  {attendance.length === 0 ? (
-                    <>
-                      Los estudiantes deben ingresar el código{" "}
-                      <span className="font-mono font-bold text-[var(--color-primary)]">
-                        {session.password}
-                      </span>
-                    </>
-                  ) : (
-                    "No se encontraron estudiantes con esos filtros"
-                  )}
-                </p>
-              </div>
+            <div className="text-center">
+              <h3 className="text-heading text-lg mb-1">
+                {attendance.length === 0
+                  ? "Esperando estudiantes"
+                  : "Sin resultados"}
+              </h3>
+              <p className="text-body">
+                {attendance.length === 0 ? (
+                  <>
+                    Los estudiantes deben ingresar el código{" "}
+                    <span className="font-mono font-bold text-[var(--color-primary)]">
+                      {session.password}
+                    </span>
+                  </>
+                ) : (
+                  "No se encontraron estudiantes con ese filtro"
+                )}
+              </p>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
-              {sortedAttendance.map((record) => {
-                const effectiveStatus = getEffectiveStatus(
-                  record.currentStatus,
-                  record.lastHeartbeat
-                );
-                const countdown = getHeartbeatCountdown(record.lastHeartbeat);
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+            {sortedAttendance.map((record) => {
+              const effectiveStatus = getEffectiveStatus(
+                record.currentStatus,
+                record.lastHeartbeat
+              );
+              const countdown = getHeartbeatCountdown(record.lastHeartbeat);
 
-                // Card style based on status
-                const cardStyles: Record<StatusFilter, string> = {
-                  ACTIVE:
-                    "border-green-500/30 bg-green-500/5 hover:border-green-500/50",
-                  DISTRACTED:
-                    "border-red-500/50 bg-red-500/10 animate-pulse-subtle shadow-[0_0_15px_rgba(239,68,68,0.2)]",
-                  IDLE: "border-yellow-500/30 bg-yellow-500/5 hover:border-yellow-500/50",
-                  OFFLINE:
-                    "border-[var(--border-default)] opacity-60 hover:opacity-80",
-                  ALL: "",
-                };
+              // Card style based on status
+              const cardStyles: Record<StatusFilter, string> = {
+                ACTIVE:
+                  "border-green-500/30 bg-green-500/5 hover:border-green-500/50",
+                DISTRACTED:
+                  "border-red-500/50 bg-red-500/10 animate-pulse-subtle shadow-[0_0_15px_rgba(239,68,68,0.2)]",
+                IDLE: "border-yellow-500/30 bg-yellow-500/5 hover:border-yellow-500/50",
+                OFFLINE:
+                  "border-[var(--border-default)] opacity-60 hover:opacity-80",
+                ALL: "",
+              };
 
-                return (
-                  <div
-                    key={record.id}
-                    className={`rounded-xl border-2 p-4 transition-all ${cardStyles[effectiveStatus]}`}
-                  >
-                    <div className="flex items-start gap-3 mb-3">
-                      {/* Avatar */}
-                      <div className="relative">
-                        <Avatar
-                          name={`${record.student.firstName} ${record.student.lastName}`}
-                          size="lg"
-                        />
-                        <div
-                          className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-[var(--surface-base)] ${
-                            effectiveStatus === "ACTIVE"
-                              ? "bg-green-500"
-                              : effectiveStatus === "DISTRACTED"
-                              ? "bg-red-500 animate-pulse"
-                              : effectiveStatus === "IDLE"
-                              ? "bg-yellow-500"
-                              : "bg-gray-500"
-                          }`}
-                        />
-                      </div>
-
-                      {/* Name & Username */}
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-[var(--text-primary)] truncate">
-                          {record.student.firstName} {record.student.lastName}
-                        </h3>
-                        <p className="text-caption">@{record.student.username}</p>
-                      </div>
+              return (
+                <div
+                  key={record.id}
+                  className={`rounded-xl border-2 p-4 transition-all ${cardStyles[effectiveStatus]}`}
+                >
+                  <div className="flex items-start gap-3 mb-3">
+                    {/* Avatar */}
+                    <div className="relative">
+                      <Avatar
+                        name={`${record.student.firstName} ${record.student.lastName}`}
+                        size="lg"
+                      />
+                      <div
+                        className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-[var(--surface-base)] ${
+                          effectiveStatus === "ACTIVE"
+                            ? "bg-green-500"
+                            : effectiveStatus === "DISTRACTED"
+                            ? "bg-red-500 animate-pulse"
+                            : effectiveStatus === "IDLE"
+                            ? "bg-yellow-500"
+                            : "bg-gray-500"
+                        }`}
+                      />
                     </div>
 
-                    {/* Status Info */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`text-xs font-bold uppercase ${
-                            effectiveStatus === "ACTIVE"
-                              ? "text-green-400"
-                              : effectiveStatus === "DISTRACTED"
-                              ? "text-red-400"
-                              : effectiveStatus === "IDLE"
-                              ? "text-yellow-400"
-                              : "text-gray-400"
-                          }`}
-                        >
-                          {effectiveStatus === "ACTIVE"
-                            ? "Activo"
-                            : effectiveStatus === "DISTRACTED"
-                            ? "Distraído"
-                            : effectiveStatus === "IDLE"
-                            ? "Inactivo"
-                            : "Desconectado"}
-                        </span>
-                        {(record.currentStatus === "DISTRACTED" ||
-                          record.currentStatus === "IDLE") &&
-                          effectiveStatus !== "OFFLINE" && (
-                            <DistractionTimer
-                              startTime={record.lastStatusChange}
-                              status={record.currentStatus}
-                            />
-                          )}
-                      </div>
-
-                      {/* Countdown */}
-                      {effectiveStatus !== "OFFLINE" && (
-                        <span
-                          className={`text-xs font-mono ${
-                            countdown <= 10
-                              ? "text-red-400 font-bold"
-                              : "text-[var(--text-muted)]"
-                          }`}
-                        >
-                          {countdown}s
-                        </span>
-                      )}
+                    {/* Name & Username */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-[var(--text-primary)] truncate">
+                        {record.student.firstName} {record.student.lastName}
+                      </h3>
+                      <p className="text-caption">@{record.student.username}</p>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </main>
+
+                  {/* Status Info */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`text-xs font-bold uppercase ${
+                          effectiveStatus === "ACTIVE"
+                            ? "text-green-400"
+                            : effectiveStatus === "DISTRACTED"
+                            ? "text-red-400"
+                            : effectiveStatus === "IDLE"
+                            ? "text-yellow-400"
+                            : "text-gray-400"
+                        }`}
+                      >
+                        {effectiveStatus === "ACTIVE"
+                          ? "Activo"
+                          : effectiveStatus === "DISTRACTED"
+                          ? "Distraído"
+                          : effectiveStatus === "IDLE"
+                          ? "Inactivo"
+                          : "Desconectado"}
+                      </span>
+                      {(record.currentStatus === "DISTRACTED" ||
+                        record.currentStatus === "IDLE") &&
+                        effectiveStatus !== "OFFLINE" && (
+                          <DistractionTimer
+                            startTime={record.lastStatusChange}
+                            status={record.currentStatus}
+                          />
+                        )}
+                    </div>
+
+                    {/* Countdown */}
+                    {effectiveStatus !== "OFFLINE" && (
+                      <span
+                        className={`text-xs font-mono ${
+                          countdown <= 10
+                            ? "text-red-400 font-bold"
+                            : "text-[var(--text-muted)]"
+                        }`}
+                      >
+                        {countdown}s
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
 
       <Toast
         message={toastMessage}
         isVisible={showToast}
         onClose={() => setShowToast(false)}
+      />
+
+      {/* End Session Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showEndSessionModal}
+        onClose={() => setShowEndSessionModal(false)}
+        onConfirm={handleEndSession}
+        title="Terminar sesión"
+        message="¿Estás seguro de que deseas terminar esta sesión? Los estudiantes serán desconectados."
+        confirmText="Terminar"
+        variant="warning"
       />
 
       <style jsx>{`
@@ -650,6 +562,6 @@ export default function TeacherSessionPage({
           animation: pulse-subtle 2s ease-in-out infinite;
         }
       `}</style>
-    </div>
+    </PageContainer>
   );
 }

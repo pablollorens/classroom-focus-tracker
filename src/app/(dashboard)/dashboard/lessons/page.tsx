@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PageContainer } from "@/components/layout";
-import { ResourceIcon, EmptyState } from "@/components/common";
+import { ResourceIcon, EmptyState, ConfirmModal } from "@/components/common";
 
 type ResourceType = "VIDEO" | "PDF" | "URL" | "TEXT";
 
@@ -50,6 +50,7 @@ export default function LibraryPage() {
 
   // Resource Modal State
   const [showResourceModal, setShowResourceModal] = useState(false);
+  const [editingResource, setEditingResource] = useState<Resource | null>(null);
   const [resourceForm, setResourceForm] = useState({
     title: "",
     type: "URL" as ResourceType,
@@ -62,6 +63,14 @@ export default function LibraryPage() {
   // Lesson Modal State
   const [showLessonModal, setShowLessonModal] = useState(false);
   const [lessonTitle, setLessonTitle] = useState("");
+
+  // Delete Confirmation Modal State
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean;
+    type: "resource" | "lesson";
+    id: string;
+    title: string;
+  }>({ isOpen: false, type: "resource", id: "", title: "" });
 
   useEffect(() => {
     fetchData();
@@ -110,39 +119,101 @@ export default function LibraryPage() {
     lesson.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleCreateResource = async (e: React.FormEvent) => {
+  const openResourceModal = (resource?: Resource) => {
+    if (resource) {
+      setEditingResource(resource);
+      setResourceForm({
+        title: resource.title,
+        type: resource.type,
+        url: resource.url || "",
+        content: resource.content || "",
+        duration: resource.duration?.toString() || "",
+      });
+    } else {
+      setEditingResource(null);
+      setResourceForm({
+        title: "",
+        type: "URL",
+        url: "",
+        content: "",
+        duration: "",
+      });
+    }
+    setShowResourceModal(true);
+  };
+
+  const closeResourceModal = () => {
+    setShowResourceModal(false);
+    setEditingResource(null);
+    setResourceForm({
+      title: "",
+      type: "URL",
+      url: "",
+      content: "",
+      duration: "",
+    });
+  };
+
+  const handleSaveResource = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
 
-    try {
-      const res = await fetch("/api/resources", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: resourceForm.title,
-          type: resourceForm.type,
-          url: resourceForm.url || null,
-          content: resourceForm.content || null,
-          duration: resourceForm.duration ? parseInt(resourceForm.duration) : null,
-        }),
-      });
+    const payload = {
+      title: resourceForm.title,
+      type: resourceForm.type,
+      url: resourceForm.url || null,
+      content: resourceForm.content || null,
+      duration: resourceForm.duration ? parseInt(resourceForm.duration) : null,
+    };
 
-      if (res.ok) {
-        const newResource = await res.json();
-        setResources([newResource, ...resources]);
-        setShowResourceModal(false);
-        setResourceForm({
-          title: "",
-          type: "URL",
-          url: "",
-          content: "",
-          duration: "",
+    try {
+      if (editingResource) {
+        // Update existing resource
+        const res = await fetch(`/api/resources/${editingResource.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
         });
+
+        if (res.ok) {
+          const updatedResource = await res.json();
+          setResources(resources.map((r) =>
+            r.id === editingResource.id ? updatedResource : r
+          ));
+          closeResourceModal();
+        }
+      } else {
+        // Create new resource
+        const res = await fetch("/api/resources", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (res.ok) {
+          const newResource = await res.json();
+          setResources([newResource, ...resources]);
+          closeResourceModal();
+        }
       }
     } catch (error) {
-      console.error("Error creating resource:", error);
+      console.error("Error saving resource:", error);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDeleteResourceFromModal = async () => {
+    if (!editingResource) return;
+
+    // Immediate delete without confirmation
+    setResources(resources.filter((r) => r.id !== editingResource.id));
+    closeResourceModal();
+
+    try {
+      await fetch(`/api/resources/${editingResource.id}`, { method: "DELETE" });
+    } catch {
+      fetchData(); // Revert on error
     }
   };
 
@@ -168,30 +239,36 @@ export default function LibraryPage() {
     }
   };
 
-  const handleDeleteResource = async (e: React.MouseEvent, id: string) => {
+  const openDeleteModal = (
+    e: React.MouseEvent,
+    type: "resource" | "lesson",
+    id: string,
+    title: string
+  ) => {
     e.stopPropagation();
-    if (!confirm("¿Estás seguro de eliminar este recurso?")) return;
-
-    setResources(resources.filter((r) => r.id !== id));
-
-    try {
-      await fetch(`/api/resources/${id}`, { method: "DELETE" });
-    } catch (error) {
-      fetchData();
-    }
+    setDeleteModal({ isOpen: true, type, id, title });
   };
 
-  const handleDeleteLesson = async (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-    if (!confirm("¿Estás seguro de eliminar esta lección?")) return;
+  const handleConfirmDelete = async () => {
+    const { type, id } = deleteModal;
 
-    setLessons(lessons.filter((l) => l.id !== id));
-
-    try {
-      await fetch(`/api/lessons/${id}`, { method: "DELETE" });
-    } catch (error) {
-      fetchData();
+    if (type === "resource") {
+      setResources(resources.filter((r) => r.id !== id));
+      try {
+        await fetch(`/api/resources/${id}`, { method: "DELETE" });
+      } catch {
+        fetchData();
+      }
+    } else {
+      setLessons(lessons.filter((l) => l.id !== id));
+      try {
+        await fetch(`/api/lessons/${id}`, { method: "DELETE" });
+      } catch {
+        fetchData();
+      }
     }
+
+    setDeleteModal({ isOpen: false, type: "resource", id: "", title: "" });
   };
 
   const formatDuration = (minutes: number | null) => {
@@ -269,8 +346,8 @@ export default function LibraryPage() {
       <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
         <div className="flex flex-col sm:flex-row gap-3 flex-1">
           {/* Search */}
-          <div className="relative flex-1 max-w-md">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]">
+          <div className="form-search flex-1 max-w-md">
+            <span className="material-symbols-outlined form-search-icon">
               search
             </span>
             <input
@@ -282,7 +359,7 @@ export default function LibraryPage() {
               }
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="form-input pl-10 w-full"
+              className="form-search-input"
             />
           </div>
 
@@ -310,7 +387,7 @@ export default function LibraryPage() {
         <button
           onClick={() =>
             activeTab === "resources"
-              ? setShowResourceModal(true)
+              ? openResourceModal()
               : setShowLessonModal(true)
           }
           className="btn-primary btn-md self-start"
@@ -345,7 +422,8 @@ export default function LibraryPage() {
             {filteredResources.map((resource) => (
               <div
                 key={resource.id}
-                className="surface-card-interactive group relative overflow-hidden"
+                onClick={() => openResourceModal(resource)}
+                className="surface-card-interactive group relative overflow-hidden cursor-pointer"
               >
                 {/* Thumbnail Area */}
                 <div className="h-32 bg-gradient-to-br from-[var(--surface-overlay)] to-[var(--surface-darker)] flex-center relative">
@@ -365,7 +443,7 @@ export default function LibraryPage() {
 
                   {/* Delete Button */}
                   <button
-                    onClick={(e) => handleDeleteResource(e, resource.id)}
+                    onClick={(e) => openDeleteModal(e, "resource", resource.id, resource.title)}
                     className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"
                   >
                     <span className="material-symbols-outlined text-lg">
@@ -426,7 +504,7 @@ export default function LibraryPage() {
 
                 {/* Delete Button */}
                 <button
-                  onClick={(e) => handleDeleteLesson(e, lesson.id)}
+                  onClick={(e) => openDeleteModal(e, "lesson", lesson.id, lesson.title)}
                   className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"
                 >
                   <span className="material-symbols-outlined text-lg">
@@ -453,21 +531,23 @@ export default function LibraryPage() {
         </div>
       )}
 
-      {/* Create Resource Modal */}
+      {/* Resource Modal (Create/Edit) */}
       {showResourceModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="w-full max-w-lg surface-card p-6">
             <div className="flex-between mb-6">
-              <h2 className="text-heading text-xl">Nuevo Recurso</h2>
+              <h2 className="text-heading text-xl">
+                {editingResource ? "Editar Recurso" : "Nuevo Recurso"}
+              </h2>
               <button
-                onClick={() => setShowResourceModal(false)}
+                onClick={closeResourceModal}
                 className="p-1 rounded hover:bg-[var(--surface-hover)]"
               >
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
 
-            <form onSubmit={handleCreateResource} className="space-y-4">
+            <form onSubmit={handleSaveResource} className="space-y-4">
               {/* Type Selection */}
               <div>
                 <label className="form-label">Tipo de Recurso</label>
@@ -580,10 +660,21 @@ export default function LibraryPage() {
               </div>
 
               {/* Actions */}
-              <div className="flex justify-end gap-3 pt-4">
+              <div className="flex gap-3 pt-4">
+                {editingResource && (
+                  <button
+                    type="button"
+                    onClick={handleDeleteResourceFromModal}
+                    className="btn-danger btn-md"
+                  >
+                    <span className="material-symbols-outlined text-lg">delete</span>
+                    Eliminar
+                  </button>
+                )}
+                <div className="flex-1" />
                 <button
                   type="button"
-                  onClick={() => setShowResourceModal(false)}
+                  onClick={closeResourceModal}
                   className="btn-ghost btn-md"
                 >
                   Cancelar
@@ -593,7 +684,7 @@ export default function LibraryPage() {
                   disabled={submitting}
                   className="btn-primary btn-md"
                 >
-                  {submitting ? "Guardando..." : "Crear Recurso"}
+                  {submitting ? "Guardando..." : editingResource ? "Guardar" : "Crear Recurso"}
                 </button>
               </div>
             </form>
@@ -652,6 +743,17 @@ export default function LibraryPage() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ ...deleteModal, isOpen: false })}
+        onConfirm={handleConfirmDelete}
+        title={`Eliminar ${deleteModal.type === "resource" ? "recurso" : "lección"}`}
+        message={`¿Estás seguro de eliminar "${deleteModal.title}"? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        variant="danger"
+      />
     </PageContainer>
   );
 }

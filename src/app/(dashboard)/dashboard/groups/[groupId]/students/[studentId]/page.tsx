@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use } from "react";
 import Link from "next/link";
+import { PageContainer } from "@/components/layout";
 
 interface SessionSummary {
     id: string;
@@ -41,80 +42,130 @@ export default function StudentStatsPage({ params }: { params: Promise<{ groupId
         fetchStats();
     }, [studentId]);
 
-    if (loading) return <div className="p-8 text-center">Loading stats...</div>;
-    if (!stats) return <div className="p-8 text-center">Student not found or error loading data.</div>;
+    if (loading) {
+        return (
+            <PageContainer>
+                <div className="flex-center h-64">
+                    <div className="flex flex-col items-center gap-3">
+                        <div className="size-8 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
+                        <span className="text-body">Cargando estadísticas...</span>
+                    </div>
+                </div>
+            </PageContainer>
+        );
+    }
+
+    if (!stats) {
+        return (
+            <PageContainer>
+                <div className="text-center py-12">
+                    <span className="material-symbols-outlined text-4xl text-[var(--text-muted)] mb-2">error</span>
+                    <p className="text-body">Estudiante no encontrado o error al cargar datos.</p>
+                </div>
+            </PageContainer>
+        );
+    }
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
-                <Link href="/dashboard" className="hover:text-gray-900 dark:hover:text-white">Dashboard</Link>
-                <span>/</span>
-                <Link href={`/dashboard/groups/${groupId}`} className="hover:text-gray-900 dark:hover:text-white">Group</Link>
-                <span>/</span>
-                <span className="text-gray-900 dark:text-white font-medium">{stats.studentName}</span>
-            </div>
+        <PageContainer>
+            {/* Breadcrumb */}
+            <nav className="flex items-center gap-2 text-sm">
+                <Link href="/dashboard" className="text-[var(--text-muted)] hover:text-[var(--text-primary)]">
+                    Dashboard
+                </Link>
+                <span className="text-[var(--text-muted)]">/</span>
+                <Link href={`/dashboard/groups/${groupId}`} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]">
+                    Grupo
+                </Link>
+                <span className="text-[var(--text-muted)]">/</span>
+                <span className="text-[var(--text-primary)] font-medium">{stats.studentName}</span>
+            </nav>
 
-            <header className="border-b pb-4 dark:border-gray-700">
-                <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
-                    {stats.studentName}
-                </h1>
-                <p className="text-gray-500 dark:text-gray-400">@{stats.username}</p>
+            {/* Header */}
+            <header>
+                <h1 className="text-heading-xl">{stats.studentName}</h1>
+                <p className="text-body mt-1">@{stats.username}</p>
             </header>
 
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-                <div className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-                    <dt className="truncate text-sm font-medium text-gray-500 dark:text-gray-400">Average Focus Score</dt>
-                    <dd className={`mt-1 text-3xl font-semibold tracking-tight ${stats.focusScore >= 70 ? 'text-green-600' : stats.focusScore >= 40 ? 'text-yellow-600' : 'text-red-600'
-                        }`}>
-                        {stats.focusScore}%
-                    </dd>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div className="surface-card p-4">
+                    <div className="flex items-center gap-3">
+                        <div className="icon-container-md icon-primary">
+                            <span className="material-symbols-outlined">speed</span>
+                        </div>
+                        <div>
+                            <p className={`text-2xl font-bold ${stats.focusScore >= 70 ? 'text-green-400' : stats.focusScore >= 40 ? 'text-yellow-400' : 'text-red-400'}`}>
+                                {stats.focusScore}%
+                            </p>
+                            <p className="text-caption">Promedio de Enfoque</p>
+                        </div>
+                    </div>
                 </div>
 
-                <div className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-                    <dt className="truncate text-sm font-medium text-gray-500 dark:text-gray-400">Sessions Attended</dt>
-                    <dd className="mt-1 text-3xl font-semibold tracking-tight text-gray-900 dark:text-white">
-                        {stats.totalSessions}
-                    </dd>
+                <div className="surface-card p-4">
+                    <div className="flex items-center gap-3">
+                        <div className="icon-container-md icon-muted">
+                            <span className="material-symbols-outlined">event_available</span>
+                        </div>
+                        <div>
+                            <p className="text-2xl font-bold text-[var(--text-primary)]">
+                                {stats.totalSessions}
+                            </p>
+                            <p className="text-caption">Sesiones Asistidas</p>
+                        </div>
+                    </div>
                 </div>
 
-                <div className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-                    <dt className="truncate text-sm font-medium text-gray-500 dark:text-gray-400">Total Distractions</dt>
-                    <dd className="mt-1 text-3xl font-semibold tracking-tight text-gray-900 dark:text-white">
-                        {stats.distractions}
-                    </dd>
+                <div className="surface-card p-4">
+                    <div className="flex items-center gap-3">
+                        <div className="icon-container-md" style={{ backgroundColor: "rgba(239, 68, 68, 0.1)", color: "rgb(239, 68, 68)" }}>
+                            <span className="material-symbols-outlined">warning</span>
+                        </div>
+                        <div>
+                            <p className="text-2xl font-bold text-[var(--text-primary)]">
+                                {stats.distractions}
+                            </p>
+                            <p className="text-caption">Distracciones Totales</p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 shadow sm:rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-                <div className="px-4 py-5 sm:px-6">
-                    <h3 className="text-base font-semibold leading-6 text-gray-900 dark:text-white">Recent Activity</h3>
+            {/* Recent Activity */}
+            <div className="surface-card overflow-hidden">
+                <div className="p-4 border-b border-[var(--border-default)]">
+                    <h3 className="text-heading">Actividad Reciente</h3>
                 </div>
-                <div className="border-t border-gray-200 dark:border-gray-700">
-                    <ul role="list" className="divide-y divide-gray-200 dark:divide-gray-700">
-                        {stats.recentSessions.length === 0 ? (
-                            <li className="px-4 py-4 sm:px-6 text-gray-500">No session history yet.</li>
-                        ) : (
-                            stats.recentSessions.map((session) => (
-                                <li key={session.id} className="px-4 py-4 sm:px-6">
+                <div>
+                    {stats.recentSessions.length === 0 ? (
+                        <div className="p-6 text-center">
+                            <span className="material-symbols-outlined text-3xl text-[var(--text-muted)] mb-2">history</span>
+                            <p className="text-body">Sin historial de sesiones aún.</p>
+                        </div>
+                    ) : (
+                        <ul className="divide-y divide-[var(--border-default)]">
+                            {stats.recentSessions.map((session) => (
+                                <li key={session.id} className="p-4 hover:bg-[var(--surface-hover)] transition-colors">
                                     <div className="flex items-center justify-between">
-                                        <p className="text-sm font-medium text-indigo-600 dark:text-indigo-400">
+                                        <p className="text-sm font-medium text-[var(--color-primary)]">
                                             {session.lessonTitle}
                                         </p>
-                                        <div className="ml-2 flex flex-shrink-0 flex-col items-end">
-                                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                        <div className="flex flex-col items-end">
+                                            <p className="text-sm text-[var(--text-secondary)]">
                                                 {new Date(session.date).toLocaleDateString()}
                                             </p>
-                                            <p className="text-xs text-gray-400">
+                                            <p className="text-xs text-[var(--text-muted)]">
                                                 {new Date(session.date).toLocaleTimeString()}
                                             </p>
                                         </div>
                                     </div>
                                 </li>
-                            ))
-                        )}
-                    </ul>
+                            ))}
+                        </ul>
+                    )}
                 </div>
             </div>
-        </div>
+        </PageContainer>
     );
 }

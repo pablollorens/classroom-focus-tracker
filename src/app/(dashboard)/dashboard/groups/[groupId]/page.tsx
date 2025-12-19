@@ -4,7 +4,7 @@ import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { PageContainer } from "@/components/layout";
-import { Avatar, StatusBadge, EmptyState } from "@/components/common";
+import { Avatar, StatusBadge, EmptyState, ConfirmModal } from "@/components/common";
 import { Toast } from "@/components/Toast";
 
 interface Student {
@@ -41,8 +41,7 @@ export default function GroupDetailsPage({
   const [group, setGroup] = useState<Group | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-
+  
   // Form State
   const [isAddingStudent, setIsAddingStudent] = useState(false);
   const [rawText, setRawText] = useState("");
@@ -57,6 +56,14 @@ export default function GroupDetailsPage({
   const [selectedLessonId, setSelectedLessonId] = useState("");
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [isStarting, setIsStarting] = useState(false);
+
+  // Delete Modal State
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean;
+    type: "group" | "student";
+    studentId?: string;
+    studentName?: string;
+  }>({ isOpen: false, type: "group" });
 
   // Fetch lessons when opening modal
   useEffect(() => {
@@ -122,55 +129,57 @@ export default function GroupDetailsPage({
     }
   };
 
-  const handleDeleteGroup = async () => {
-    if (
-      !confirm(
-        `¿Estás seguro de eliminar "${group?.name}" y TODOS sus estudiantes? Esto no se puede deshacer.`
-      )
-    ) {
-      return;
-    }
+  const openDeleteGroupModal = () => {
+    setDeleteModal({ isOpen: true, type: "group" });
+  };
 
-    try {
-      const res = await fetch(`/api/groups/${groupId}`, {
-        method: "DELETE",
-      });
+  const openDeleteStudentModal = (studentId: string, studentName: string) => {
+    setDeleteModal({ isOpen: true, type: "student", studentId, studentName });
+  };
 
-      if (res.ok) {
-        router.push("/dashboard");
-      } else {
+  const handleConfirmDelete = async () => {
+    if (deleteModal.type === "group") {
+      try {
+        const res = await fetch(`/api/groups/${groupId}`, {
+          method: "DELETE",
+        });
+
+        if (res.ok) {
+          router.push("/dashboard");
+        } else {
+          setToastMessage("Error al eliminar grupo");
+          setShowToast(true);
+        }
+      } catch {
         setToastMessage("Error al eliminar grupo");
         setShowToast(true);
       }
-    } catch {
-      setToastMessage("Error al eliminar grupo");
-      setShowToast(true);
-    }
-  };
+    } else if (deleteModal.type === "student" && deleteModal.studentId) {
+      const previousStudents = [...students];
+      setStudents(students.filter((s) => s.id !== deleteModal.studentId));
 
-  const handleDeleteStudent = async (studentId: string) => {
-    const previousStudents = [...students];
-    setStudents(students.filter((s) => s.id !== studentId));
+      try {
+        const res = await fetch(
+          `/api/groups/${groupId}/students/${deleteModal.studentId}`,
+          { method: "DELETE" }
+        );
 
-    try {
-      const res = await fetch(
-        `/api/groups/${groupId}/students/${studentId}`,
-        { method: "DELETE" }
-      );
-
-      if (res.ok) {
-        setToastMessage("Estudiante eliminado");
-        setShowToast(true);
-      } else {
+        if (res.ok) {
+          setToastMessage("Estudiante eliminado");
+          setShowToast(true);
+        } else {
+          setStudents(previousStudents);
+          setToastMessage("Error al eliminar estudiante");
+          setShowToast(true);
+        }
+      } catch {
         setStudents(previousStudents);
         setToastMessage("Error al eliminar estudiante");
         setShowToast(true);
       }
-    } catch {
-      setStudents(previousStudents);
-      setToastMessage("Error al eliminar estudiante");
-      setShowToast(true);
     }
+
+    setDeleteModal({ isOpen: false, type: "group" });
   };
 
   const generateUsername = (firstName: string, lastName: string) => {
@@ -230,14 +239,6 @@ export default function GroupDetailsPage({
       setShowToast(true);
     }
   };
-
-  // Filter students by search
-  const filteredStudents = students.filter(
-    (student) =>
-      student.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      student.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      student.username.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   const activeSession = group?.sessions?.[0];
 
@@ -330,7 +331,7 @@ export default function GroupDetailsPage({
             </button>
           )}
 
-          <button onClick={handleDeleteGroup} className="btn-danger btn-md">
+          <button onClick={openDeleteGroupModal} className="btn-danger btn-md">
             <span className="material-symbols-outlined text-lg">delete</span>
           </button>
         </div>
@@ -393,20 +394,6 @@ export default function GroupDetailsPage({
         </div>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-md">
-        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]">
-          search
-        </span>
-        <input
-          type="text"
-          placeholder="Buscar estudiantes..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="form-input pl-10 w-full"
-        />
-      </div>
-
       {/* Students Table */}
       {students.length === 0 ? (
         <EmptyState
@@ -432,7 +419,7 @@ export default function GroupDetailsPage({
                 </tr>
               </thead>
               <tbody>
-                {filteredStudents.map((student) => (
+                {students.map((student) => (
                   <tr
                     key={student.id}
                     onClick={() =>
@@ -467,7 +454,7 @@ export default function GroupDetailsPage({
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleDeleteStudent(student.id);
+                          openDeleteStudentModal(student.id, `${student.firstName} ${student.lastName}`);
                         }}
                         className="p-2 rounded-lg text-[var(--text-muted)] hover:text-red-400 hover:bg-red-400/10 transition-colors"
                       >
@@ -481,17 +468,6 @@ export default function GroupDetailsPage({
               </tbody>
             </table>
           </div>
-
-          {filteredStudents.length === 0 && searchQuery && (
-            <div className="p-8 text-center">
-              <span className="material-symbols-outlined text-4xl text-[var(--text-muted)] mb-2">
-                search_off
-              </span>
-              <p className="text-body">
-                No se encontraron estudiantes con "{searchQuery}"
-              </p>
-            </div>
-          )}
         </div>
       )}
 
@@ -620,6 +596,21 @@ export default function GroupDetailsPage({
         message={toastMessage}
         isVisible={showToast}
         onClose={() => setShowToast(false)}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ ...deleteModal, isOpen: false })}
+        onConfirm={handleConfirmDelete}
+        title={deleteModal.type === "group" ? "Eliminar grupo" : "Eliminar estudiante"}
+        message={
+          deleteModal.type === "group"
+            ? `¿Estás seguro de eliminar "${group?.name}" y TODOS sus estudiantes? Esta acción no se puede deshacer.`
+            : `¿Estás seguro de eliminar a "${deleteModal.studentName}" del grupo?`
+        }
+        confirmText="Eliminar"
+        variant="danger"
       />
     </PageContainer>
   );

@@ -1,9 +1,21 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Fragment, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { PageContainer } from "@/components/layout";
-import { EmptyState } from "@/components/common";
+import {
+  DndContext,
+  DragOverlay,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+  PointerSensor,
+  DragEndEvent,
+  DragStartEvent,
+  DragMoveEvent,
+  pointerWithin,
+} from "@dnd-kit/core";
 
 interface ScheduledClass {
   id: string;
@@ -13,13 +25,14 @@ interface ScheduledClass {
   duration: number;
   isRecurring: boolean;
   notes: string | null;
-  group: { id: string; name: string };
+  group: { id: string; name: string } | null;
   preparedLesson: { id: string; title: string };
 }
 
 interface PreparedLesson {
   id: string;
   title: string;
+  duration?: number;
 }
 
 interface Group {
@@ -29,6 +42,9 @@ interface Group {
 
 const DAYS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const HOURS = Array.from({ length: 11 }, (_, i) => i + 8); // 8:00 - 18:00
+const CELL_HEIGHT = 80; // Height of each hour cell in pixels
+const SNAP_MINUTES = 5;
+const PIXELS_PER_MINUTE = CELL_HEIGHT / 60;
 
 const CLASS_COLORS = [
   "bg-blue-600",
@@ -39,67 +55,277 @@ const CLASS_COLORS = [
   "bg-cyan-600",
 ];
 
+// Draggable Lesson Component
+function DraggableLessonItem({ lesson }: { lesson: PreparedLesson }) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `lesson-${lesson.id}`,
+    data: { type: "lesson", lesson },
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      className={`lesson-bank-item cursor-grab active:cursor-grabbing ${
+        isDragging ? "opacity-50" : ""
+      }`}
+    >
+      <span className="material-symbols-outlined text-[var(--color-primary)] text-lg mb-1">
+        menu_book
+      </span>
+      <p className="text-sm text-white font-medium truncate">{lesson.title}</p>
+      {lesson.duration && (
+        <p className="text-xs text-[var(--text-muted)]">{lesson.duration} min</p>
+      )}
+    </div>
+  );
+}
+
+// Draggable Calendar Event Component
+function DraggableCalendarEvent({
+  sc,
+  topOffset,
+  colorClass,
+  onEdit,
+}: {
+  sc: ScheduledClass;
+  topOffset: number;
+  colorClass: string;
+  onEdit: (sc: ScheduledClass) => void;
+}) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `event-${sc.id}`,
+    data: { type: "event", scheduledClass: sc },
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      className={`calendar-class-card ${colorClass} cursor-grab active:cursor-grabbing ${
+        isDragging ? "opacity-50" : ""
+      }`}
+      style={{
+        top: `${topOffset}px`,
+        height: `${(sc.duration / 60) * CELL_HEIGHT - 4}px`,
+      }}
+      onClick={(e) => {
+        e.stopPropagation();
+        onEdit(sc);
+      }}
+    >
+      <span className="text-white text-xs font-bold truncate">
+        {sc.group?.name || "Sin grupo"}
+      </span>
+      <span className="text-white/80 text-xs truncate">
+        {sc.preparedLesson.title}
+      </span>
+      <span className="text-white/60 text-[10px]">
+        {sc.startTime} - {sc.duration}min
+      </span>
+    </div>
+  );
+}
+
+// Droppable Calendar Cell Component
+function DroppableCalendarCell({
+  dayIndex,
+  hour,
+  isToday,
+  currentHour,
+  currentMinutes,
+  classes,
+  getColorForGroup,
+  onEditClass,
+  onCellClick,
+  dropPreview,
+  activeLesson,
+  draggingEvent,
+}: {
+  dayIndex: number;
+  hour: number;
+  isToday: boolean;
+  currentHour: number;
+  currentMinutes: number;
+  classes: ScheduledClass[];
+  getColorForGroup: (groupId: string | null) => string;
+  onEditClass: (sc: ScheduledClass) => void;
+  onCellClick: (dayIndex: number, hour: number, minutes: number) => void;
+  dropPreview: { dayIndex: number; hour: number; minutes: number } | null;
+  activeLesson: PreparedLesson | null;
+  draggingEvent: ScheduledClass | null;
+}) {
+  const cellRef = useRef<HTMLDivElement>(null);
+  const { setNodeRef } = useDroppable({
+    id: `cell-${dayIndex}-${hour}`,
+    data: { type: "cell", dayIndex, hour },
+  });
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (cellRef.current) {
+      const rect = cellRef.current.getBoundingClientRect();
+      const relativeY = e.clientY - rect.top;
+      const minutesInCell = (relativeY / CELL_HEIGHT) * 60;
+      const snappedMinutes = Math.round(minutesInCell / SNAP_MINUTES) * SNAP_MINUTES;
+      onCellClick(dayIndex, hour, Math.min(55, Math.max(0, snappedMinutes)));
+    }
+  };
+
+  return (
+    <div
+      ref={(node) => {
+        setNodeRef(node);
+        (cellRef as any).current = node;
+      }}
+      data-cell-id={`cell-${dayIndex}-${hour}`}
+      className={`calendar-cell ${isToday ? "calendar-cell-current" : ""} relative`}
+      onClick={handleClick}
+    >
+      {/* 15-minute grid lines (subtle) */}
+      {[1, 2, 3].map((i) => (
+        <div
+          key={i}
+          className="absolute left-0 right-0 border-t border-dashed border-[var(--border-default)]/30 pointer-events-none"
+          style={{ top: `${(i * 15 / 60) * 100}%` }}
+        />
+      ))}
+
+      {/* Current time indicator */}
+      {isToday && hour === currentHour && (
+        <div
+          className="calendar-time-indicator"
+          style={{ top: `${(currentMinutes / 60) * 100}%` }}
+        >
+          <div className="calendar-time-indicator-dot" />
+        </div>
+      )}
+
+      {/* Scheduled classes */}
+      {classes.map((sc) => {
+        const [startHour, startMin] = sc.startTime.split(":").map(Number);
+        const offsetMinutes = startHour === hour ? startMin : 0;
+        const topOffset = (offsetMinutes / 60) * CELL_HEIGHT;
+
+        return (
+          <DraggableCalendarEvent
+            key={sc.id}
+            sc={sc}
+            topOffset={topOffset}
+            colorClass={getColorForGroup(sc.group?.id || null)}
+            onEdit={onEditClass}
+          />
+        );
+      })}
+
+      {/* Drop Preview Ghost */}
+      {dropPreview && dropPreview.dayIndex === dayIndex && dropPreview.hour === hour && (activeLesson || draggingEvent) && (
+        <div
+          className="absolute left-1 right-1 bg-[var(--color-primary)]/40 border-2 border-dashed border-[var(--color-primary)] rounded-lg pointer-events-none z-10 flex flex-col justify-center px-2 overflow-hidden"
+          style={{
+            top: `${(dropPreview.minutes / 60) * CELL_HEIGHT}px`,
+            height: `${((activeLesson?.duration || draggingEvent?.duration || 60) / 60) * CELL_HEIGHT - 4}px`,
+          }}
+        >
+          <span className="text-white text-xs font-bold truncate">
+            {activeLesson?.title || draggingEvent?.preparedLesson.title}
+          </span>
+          <span className="text-white/70 text-[10px]">
+            {hour.toString().padStart(2, "0")}:{dropPreview.minutes.toString().padStart(2, "0")} - {activeLesson?.duration || draggingEvent?.duration || 60}min
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function CalendarPage() {
   const router = useRouter();
+  const calendarRef = useRef<HTMLDivElement>(null);
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
     const now = new Date();
     const day = now.getDay();
-    const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Lunes
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
     return new Date(now.setDate(diff));
   });
+  const [slideDirection, setSlideDirection] = useState<"left" | "right" | null>(null);
+  const [isAnimating, setIsAnimating] = useState(false);
   const [scheduledClasses, setScheduledClasses] = useState<ScheduledClass[]>([]);
   const [lessons, setLessons] = useState<PreparedLesson[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState<{
-    day: number;
+  const [editingClass, setEditingClass] = useState<ScheduledClass | null>(null);
+  const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
+  const [draggingEvent, setDraggingEvent] = useState<ScheduledClass | null>(null);
+  const [dropPreview, setDropPreview] = useState<{
+    dayIndex: number;
     hour: number;
+    minutes: number;
   } | null>(null);
 
-  // Form state
+  // Form state for editing
   const [formData, setFormData] = useState({
     groupId: "",
-    preparedLessonId: "",
+    startTime: "",
     duration: 60,
     isRecurring: false,
     notes: "",
   });
 
   useEffect(() => {
-    fetchData();
+    fetchData(!initialLoadDone);
   }, [currentWeekStart]);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (isInitial = false) => {
+    if (isInitial) {
+      setLoading(true);
+    }
     try {
       const weekEnd = new Date(currentWeekStart);
       weekEnd.setDate(weekEnd.getDate() + 6);
 
-      const [classesRes, lessonsRes, groupsRes] = await Promise.all([
-        fetch(
-          `/api/scheduled-classes?weekStart=${currentWeekStart.toISOString()}&weekEnd=${weekEnd.toISOString()}`
-        ),
-        fetch("/api/lessons"),
-        fetch("/api/groups"),
-      ]);
+      // Only fetch lessons and groups on initial load (they don't change per week)
+      if (isInitial) {
+        const [classesRes, lessonsRes, groupsRes] = await Promise.all([
+          fetch(
+            `/api/scheduled-classes?weekStart=${currentWeekStart.toISOString()}&weekEnd=${weekEnd.toISOString()}`
+          ),
+          fetch("/api/lessons"),
+          fetch("/api/groups"),
+        ]);
 
-      if (classesRes.ok) {
-        const data = await classesRes.json();
-        setScheduledClasses(data);
-      }
-      if (lessonsRes.ok) {
-        const data = await lessonsRes.json();
-        setLessons(data);
-      }
-      if (groupsRes.ok) {
-        const data = await groupsRes.json();
-        setGroups(data);
+        if (classesRes.ok) {
+          const data = await classesRes.json();
+          setScheduledClasses(data);
+        }
+        if (lessonsRes.ok) {
+          const data = await lessonsRes.json();
+          setLessons(data);
+        }
+        if (groupsRes.ok) {
+          const data = await groupsRes.json();
+          setGroups(data);
+        }
+      } else {
+        // Only fetch classes for week changes
+        const classesRes = await fetch(
+          `/api/scheduled-classes?weekStart=${currentWeekStart.toISOString()}&weekEnd=${weekEnd.toISOString()}`
+        );
+        if (classesRes.ok) {
+          const data = await classesRes.json();
+          setScheduledClasses(data);
+        }
       }
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
-      setLoading(false);
+      if (isInitial) {
+        setLoading(false);
+        setInitialLoadDone(true);
+      }
     }
   };
 
@@ -116,54 +342,233 @@ export default function CalendarPage() {
   const currentMinutes = today.getMinutes();
 
   const navigateWeek = (direction: number) => {
-    const newDate = new Date(currentWeekStart);
-    newDate.setDate(newDate.getDate() + direction * 7);
-    setCurrentWeekStart(newDate);
+    if (isAnimating) return;
+
+    setSlideDirection(direction > 0 ? "left" : "right");
+    setIsAnimating(true);
+
+    // Small delay to let exit animation start, then update the week
+    setTimeout(() => {
+      const newDate = new Date(currentWeekStart);
+      newDate.setDate(newDate.getDate() + direction * 7);
+      setCurrentWeekStart(newDate);
+
+      // Reset animation state after enter animation completes
+      setTimeout(() => {
+        setIsAnimating(false);
+        setSlideDirection(null);
+      }, 200);
+    }, 150);
   };
 
-  const handleCellClick = (dayIndex: number, hour: number) => {
-    setSelectedSlot({ day: dayIndex + 1, hour }); // +1 porque weekDays empieza en lunes (1)
+  const goToToday = () => {
+    if (isAnimating) return;
+
+    const now = new Date();
+    const day = now.getDay();
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+    const todayWeekStart = new Date(now.setDate(diff));
+
+    // Determine direction based on whether today is before or after current week
+    const currentTime = currentWeekStart.getTime();
+    const todayTime = todayWeekStart.getTime();
+
+    if (currentTime === todayTime) return; // Already on current week
+
+    setSlideDirection(todayTime > currentTime ? "left" : "right");
+    setIsAnimating(true);
+
+    setTimeout(() => {
+      setCurrentWeekStart(todayWeekStart);
+      setTimeout(() => {
+        setIsAnimating(false);
+        setSlideDirection(null);
+      }, 200);
+    }, 150);
+  };
+
+  // Click on empty cell - do nothing for now (only drag to create)
+  const handleCellClick = () => {
+    // Empty cells are for dropping lessons only
+  };
+
+  // Click on existing scheduled class to edit
+  const handleEditClass = (sc: ScheduledClass) => {
+    setEditingClass(sc);
+    const [hour, minutes] = sc.startTime.split(":").map(Number);
+    setFormData({
+      groupId: sc.group?.id || "",
+      startTime: sc.startTime,
+      duration: sc.duration,
+      isRecurring: sc.isRecurring,
+      notes: sc.notes || "",
+    });
     setShowModal(true);
   };
 
-  const handleCreateClass = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedSlot || !formData.groupId || !formData.preparedLessonId) return;
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    if (active.data.current?.type === "lesson") {
+      setActiveLessonId(active.data.current.lesson.id);
+      setDraggingEvent(null);
+    } else if (active.data.current?.type === "event") {
+      setDraggingEvent(active.data.current.scheduledClass);
+      setActiveLessonId(null);
+    }
+  };
 
-    const specificDate = weekDays[selectedSlot.day - 1];
-    specificDate.setHours(selectedSlot.hour, 0, 0, 0);
+  const handleDragMove = (event: DragMoveEvent) => {
+    const { over, activatorEvent, delta } = event;
+
+    if (!over || !activatorEvent || !('clientY' in activatorEvent)) {
+      setDropPreview(null);
+      return;
+    }
+
+    const cellData = over.data.current;
+    if (cellData?.type !== "cell") {
+      setDropPreview(null);
+      return;
+    }
+
+    const { dayIndex, hour } = cellData;
+    const e = activatorEvent as PointerEvent;
+    const pointerY = e.clientY + (delta?.y || 0);
+
+    // Get the cell element to calculate relative position
+    const cellElement = document.querySelector(`[data-cell-id="cell-${dayIndex}-${hour}"]`);
+    if (cellElement) {
+      const rect = cellElement.getBoundingClientRect();
+      const relativeY = pointerY - rect.top;
+      const minutesInCell = (relativeY / CELL_HEIGHT) * 60;
+      let minutes = Math.round(minutesInCell / SNAP_MINUTES) * SNAP_MINUTES;
+      minutes = Math.min(55, Math.max(0, minutes));
+
+      setDropPreview({ dayIndex, hour, minutes });
+    }
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    const preview = dropPreview;
+    const movingEvent = draggingEvent;
+    setActiveLessonId(null);
+    setDraggingEvent(null);
+    setDropPreview(null);
+
+    if (!over) return;
+
+    const cellData = over.data.current;
+    if (cellData?.type !== "cell") return;
+
+    // Use the preview position if available, otherwise default to top of cell
+    const dayIndex = preview?.dayIndex ?? cellData.dayIndex;
+    const hour = preview?.hour ?? cellData.hour;
+    const minutes = preview?.minutes ?? 0;
+
+    const specificDate = new Date(weekDays[dayIndex]);
+    specificDate.setHours(hour, minutes, 0, 0);
+    const startTime = `${hour.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`;
+
+    // Moving an existing event
+    if (movingEvent) {
+      try {
+        const res = await fetch(`/api/scheduled-classes/${movingEvent.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            specificDate: specificDate.toISOString(),
+            startTime,
+            isRecurring: false,
+          }),
+        });
+
+        if (res.ok) {
+          const updatedClass = await res.json();
+          setScheduledClasses((prev) =>
+            prev.map((sc) => (sc.id === movingEvent.id ? updatedClass : sc))
+          );
+        }
+      } catch (error) {
+        console.error("Error moving class:", error);
+      }
+      return;
+    }
+
+    // Creating new from lesson
+    const lesson = active.data.current?.lesson as PreparedLesson | undefined;
+    if (!lesson) return;
 
     try {
       const res = await fetch("/api/scheduled-classes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          groupId: formData.groupId,
-          preparedLessonId: formData.preparedLessonId,
-          dayOfWeek: formData.isRecurring ? selectedSlot.day : undefined,
-          specificDate: !formData.isRecurring
-            ? specificDate.toISOString()
-            : undefined,
-          startTime: `${selectedSlot.hour.toString().padStart(2, "0")}:00`,
-          duration: formData.duration,
-          isRecurring: formData.isRecurring,
-          notes: formData.notes || undefined,
+          preparedLessonId: lesson.id,
+          specificDate: specificDate.toISOString(),
+          startTime,
+          duration: lesson.duration || 60,
+          isRecurring: false,
         }),
       });
 
       if (res.ok) {
-        setShowModal(false);
-        setFormData({
-          groupId: "",
-          preparedLessonId: "",
-          duration: 60,
-          isRecurring: false,
-          notes: "",
-        });
-        fetchData();
+        const newClass = await res.json();
+        setScheduledClasses((prev) => [...prev, newClass]);
+      } else {
+        const errorData = await res.json();
+        console.error("API error:", res.status, errorData);
       }
     } catch (error) {
       console.error("Error creating class:", error);
+    }
+  };
+
+  const handleSaveClass = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingClass) return;
+
+    try {
+      const res = await fetch(`/api/scheduled-classes/${editingClass.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          groupId: formData.groupId || null,
+          startTime: formData.startTime,
+          duration: formData.duration,
+          isRecurring: formData.isRecurring,
+          notes: formData.notes || null,
+        }),
+      });
+
+      if (res.ok) {
+        const updatedClass = await res.json();
+        setScheduledClasses((prev) =>
+          prev.map((sc) => (sc.id === editingClass.id ? updatedClass : sc))
+        );
+        setShowModal(false);
+        setEditingClass(null);
+      }
+    } catch (error) {
+      console.error("Error updating class:", error);
+    }
+  };
+
+  const handleDeleteClass = async () => {
+    if (!editingClass) return;
+
+    try {
+      const res = await fetch(`/api/scheduled-classes/${editingClass.id}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        setScheduledClasses((prev) => prev.filter((sc) => sc.id !== editingClass.id));
+        setShowModal(false);
+        setEditingClass(null);
+      }
+    } catch (error) {
+      console.error("Error deleting class:", error);
     }
   };
 
@@ -182,7 +587,7 @@ export default function CalendarPage() {
   };
 
   const getClassesForSlot = (dayIndex: number, hour: number) => {
-    const dayOfWeek = dayIndex + 1; // Lunes = 1
+    const dayOfWeek = dayIndex + 1;
     const dateStr = weekDays[dayIndex].toISOString().split("T")[0];
 
     return scheduledClasses.filter((sc) => {
@@ -199,10 +604,24 @@ export default function CalendarPage() {
     });
   };
 
-  const getColorForGroup = (groupId: string) => {
+  const getColorForGroup = (groupId: string | null) => {
+    if (!groupId) return "bg-gray-600"; // Default color for no group
     const index = groups.findIndex((g) => g.id === groupId);
     return CLASS_COLORS[index % CLASS_COLORS.length];
   };
+
+  const activeLesson = activeLessonId
+    ? lessons.find((l) => l.id === activeLessonId) ?? null
+    : null;
+
+  // Require 8px movement before drag starts (allows click for edit)
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
 
   if (loading) {
     return (
@@ -218,274 +637,313 @@ export default function CalendarPage() {
   }
 
   return (
-    <PageContainer className="!p-0 !max-w-none">
-      {/* Header */}
-      <div className="px-6 py-4 border-b border-[var(--border-default)] flex-between">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => navigateWeek(-1)}
-            className="btn-ghost btn-icon-sm"
-          >
-            <span className="material-symbols-outlined">chevron_left</span>
-          </button>
-          <h1 className="text-heading text-lg">
-            {weekDays[0].toLocaleDateString("es-ES", {
-              month: "long",
-              day: "numeric",
-            })}{" "}
-            -{" "}
-            {weekDays[4].toLocaleDateString("es-ES", {
-              month: "long",
-              day: "numeric",
-              year: "numeric",
-            })}
-          </h1>
-          <button
-            onClick={() => navigateWeek(1)}
-            className="btn-ghost btn-icon-sm"
-          >
-            <span className="material-symbols-outlined">chevron_right</span>
-          </button>
-        </div>
-        <button
-          onClick={() => setCurrentWeekStart(new Date())}
-          className="btn-secondary btn-sm"
-        >
-          Hoy
-        </button>
-      </div>
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragMove={handleDragMove}
+      onDragEnd={handleDragEnd}
+      collisionDetection={pointerWithin}
+    >
+      <PageContainer>
+        {/* Page Title */}
+        <section>
+          <h1 className="text-heading-xl mb-2">Horario</h1>
+          <p className="text-body">
+            Arrastra las lecciones al calendario para programarlas.
+          </p>
+        </section>
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* Calendar Grid */}
-        <div className="flex-1 overflow-auto custom-scrollbar">
-          {/* Day Headers */}
-          <div className="calendar-header">
-            <div className="calendar-day-header" /> {/* Time column */}
-            {weekDays.map((date, i) => {
-              const isToday = date.toDateString() === today.toDateString();
-              return (
-                <div
-                  key={i}
-                  className={
-                    isToday
-                      ? "calendar-day-header-current"
-                      : "calendar-day-header"
-                  }
-                >
-                  <p className="text-caption">{DAYS[date.getDay()]}</p>
-                  <p
-                    className={`text-heading text-lg ${
-                      isToday ? "text-[var(--color-primary)]" : ""
-                    }`}
-                  >
-                    {date.getDate()}
-                  </p>
-                </div>
-              );
-            })}
+        {/* Calendar Card */}
+        <div className="surface-card overflow-hidden">
+          {/* Week Navigation */}
+          <div className="p-4 border-b border-[var(--border-default)] flex-between">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigateWeek(-1)}
+                className="btn-ghost btn-icon-sm"
+              >
+                <span className="material-symbols-outlined">chevron_left</span>
+              </button>
+              <h2 className="text-heading text-lg">
+                {weekDays[0].toLocaleDateString("es-ES", {
+                  month: "long",
+                  day: "numeric",
+                })}{" "}
+                -{" "}
+                {weekDays[4].toLocaleDateString("es-ES", {
+                  month: "long",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </h2>
+              <button
+                onClick={() => navigateWeek(1)}
+                className="btn-ghost btn-icon-sm"
+              >
+                <span className="material-symbols-outlined">chevron_right</span>
+              </button>
+            </div>
+            <button
+              onClick={goToToday}
+              className="btn-secondary btn-sm"
+            >
+              Hoy
+            </button>
           </div>
 
-          {/* Time Grid */}
-          <div className="calendar-grid">
-            {HOURS.map((hour) => (
-              <>
-                <div key={`time-${hour}`} className="calendar-time-label">
-                  {hour.toString().padStart(2, "0")}:00
-                </div>
-                {weekDays.map((date, dayIndex) => {
+          <div className="flex flex-1 overflow-hidden" style={{ height: "calc(100vh - 320px)", minHeight: "500px" }}>
+            {/* Calendar Grid */}
+            <div ref={calendarRef} className="flex-1 overflow-auto custom-scrollbar">
+              <div
+                className={`transition-all duration-200 ease-out ${
+                  slideDirection === "left"
+                    ? isAnimating
+                      ? "-translate-x-4 opacity-0"
+                      : "translate-x-0 opacity-100"
+                    : slideDirection === "right"
+                    ? isAnimating
+                      ? "translate-x-4 opacity-0"
+                      : "translate-x-0 opacity-100"
+                    : ""
+                }`}
+              >
+              {/* Day Headers */}
+              <div className="calendar-header">
+                <div className="calendar-day-header" />
+                {weekDays.map((date, i) => {
                   const isToday = date.toDateString() === today.toDateString();
-                  const classes = getClassesForSlot(dayIndex, hour);
-
                   return (
                     <div
-                      key={`${dayIndex}-${hour}`}
-                      className={`calendar-cell ${
-                        isToday ? "calendar-cell-current" : ""
-                      } relative`}
-                      onClick={() => handleCellClick(dayIndex, hour)}
+                      key={i}
+                      className={
+                        isToday
+                          ? "calendar-day-header-current"
+                          : "calendar-day-header"
+                      }
                     >
-                      {/* Current time indicator */}
-                      {isToday && hour === currentHour && (
-                        <div
-                          className="calendar-time-indicator"
-                          style={{ top: `${(currentMinutes / 60) * 100}%` }}
-                        >
-                          <div className="calendar-time-indicator-dot" />
-                        </div>
-                      )}
-
-                      {/* Scheduled classes */}
-                      {classes.map((sc) => (
-                        <div
-                          key={sc.id}
-                          className={`calendar-class-card ${getColorForGroup(
-                            sc.group.id
-                          )}`}
-                          style={{
-                            height: `${(sc.duration / 60) * 80 - 8}px`,
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            startSession(sc.id);
-                          }}
-                        >
-                          <span className="text-white text-xs font-bold truncate">
-                            {sc.group.name}
-                          </span>
-                          <span className="text-white/80 text-xs truncate">
-                            {sc.preparedLesson.title}
-                          </span>
-                          <span className="text-white/60 text-[10px]">
-                            {sc.startTime} - {sc.duration}min
-                          </span>
-                        </div>
-                      ))}
+                      <p className="text-caption">{DAYS[date.getDay()]}</p>
+                      <p
+                        className={`text-heading text-lg ${
+                          isToday ? "text-[var(--color-primary)]" : ""
+                        }`}
+                      >
+                        {date.getDate()}
+                      </p>
                     </div>
                   );
                 })}
-              </>
-            ))}
+              </div>
+
+              {/* Time Grid */}
+              <div className="calendar-grid">
+                {HOURS.map((hour) => (
+                  <Fragment key={hour}>
+                    <div className="calendar-time-label">
+                      {hour.toString().padStart(2, "0")}:00
+                    </div>
+                    {weekDays.map((date, dayIndex) => {
+                      const isToday = date.toDateString() === today.toDateString();
+                      const classes = getClassesForSlot(dayIndex, hour);
+
+                      return (
+                        <DroppableCalendarCell
+                          key={`${dayIndex}-${hour}`}
+                          dayIndex={dayIndex}
+                          hour={hour}
+                          isToday={isToday}
+                          currentHour={currentHour}
+                          currentMinutes={currentMinutes}
+                          classes={classes}
+                          getColorForGroup={getColorForGroup}
+                          onEditClass={handleEditClass}
+                          onCellClick={handleCellClick}
+                          dropPreview={dropPreview}
+                          activeLesson={activeLesson}
+                          draggingEvent={draggingEvent}
+                        />
+                      );
+                    })}
+                  </Fragment>
+                ))}
+              </div>
+              </div>
+            </div>
+
+            {/* Lesson Bank Sidebar */}
+            <div className="w-72 border-l border-[var(--border-default)] bg-[var(--surface-darker)] p-4 overflow-y-auto custom-scrollbar hidden lg:block">
+              <h2 className="text-heading text-sm mb-2">Banco de Lecciones</h2>
+              <p className="text-caption text-xs mb-4">
+                Arrastra una lección al calendario
+              </p>
+              {lessons.length === 0 ? (
+                <p className="text-caption text-center py-8">
+                  No hay lecciones creadas
+                </p>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {lessons.map((lesson) => (
+                    <DraggableLessonItem key={lesson.id} lesson={lesson} />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Lesson Bank Sidebar */}
-        <div className="w-72 border-l border-[var(--border-default)] bg-[var(--surface-darker)] p-4 overflow-y-auto custom-scrollbar hidden lg:block">
-          <h2 className="text-heading text-sm mb-4">Banco de Lecciones</h2>
-          {lessons.length === 0 ? (
-            <p className="text-caption text-center py-8">
-              No hay lecciones creadas
-            </p>
-          ) : (
-            <div className="flex flex-col gap-2">
-              {lessons.map((lesson) => (
-                <div key={lesson.id} className="lesson-bank-item">
-                  <span className="material-symbols-outlined text-[var(--color-primary)] text-lg mb-1">
-                    menu_book
-                  </span>
-                  <p className="text-sm text-white font-medium truncate">
-                    {lesson.title}
-                  </p>
-                </div>
-              ))}
+        {/* Drag Overlay - follows cursor */}
+        <DragOverlay dropAnimation={null}>
+          {activeLesson && (
+            <div className="lesson-bank-item opacity-90 shadow-xl rotate-3 scale-105">
+              <span className="material-symbols-outlined text-[var(--color-primary)] text-lg mb-1">
+                menu_book
+              </span>
+              <p className="text-sm text-white font-medium truncate">
+                {activeLesson.title}
+              </p>
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Create Class Modal */}
-      {showModal && selectedSlot && (
-        <div className="fixed inset-0 bg-black/50 flex-center z-50">
-          <div className="surface-card w-full max-w-md p-6 m-4">
-            <div className="flex-between mb-6">
-              <h2 className="text-heading text-lg">Programar Clase</h2>
-              <button
-                onClick={() => setShowModal(false)}
-                className="btn-ghost btn-icon-sm"
-              >
-                <span className="material-symbols-outlined">close</span>
-              </button>
+          {draggingEvent && (
+            <div className={`calendar-class-card ${getColorForGroup(draggingEvent.group?.id || null)} opacity-90 shadow-xl rotate-2`}
+              style={{ width: "140px", height: `${(draggingEvent.duration / 60) * CELL_HEIGHT - 4}px`, position: "relative" }}
+            >
+              <span className="text-white text-xs font-bold truncate">
+                {draggingEvent.group?.name || "Sin grupo"}
+              </span>
+              <span className="text-white/80 text-xs truncate">
+                {draggingEvent.preparedLesson.title}
+              </span>
             </div>
+          )}
+        </DragOverlay>
 
-            <form onSubmit={handleCreateClass} className="flex flex-col gap-4">
-              <div className="form-group">
-                <label className="form-label">Grupo</label>
-                <select
-                  value={formData.groupId}
-                  onChange={(e) =>
-                    setFormData({ ...formData, groupId: e.target.value })
-                  }
-                  className="form-select"
-                  required
-                >
-                  <option value="">Seleccionar grupo...</option>
-                  {groups.map((g) => (
-                    <option key={g.id} value={g.id}>
-                      {g.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Lección</label>
-                <select
-                  value={formData.preparedLessonId}
-                  onChange={(e) =>
-                    setFormData({ ...formData, preparedLessonId: e.target.value })
-                  }
-                  className="form-select"
-                  required
-                >
-                  <option value="">Seleccionar lección...</option>
-                  {lessons.map((l) => (
-                    <option key={l.id} value={l.id}>
-                      {l.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Duración (minutos)</label>
-                <select
-                  value={formData.duration}
-                  onChange={(e) =>
-                    setFormData({ ...formData, duration: parseInt(e.target.value) })
-                  }
-                  className="form-select"
-                >
-                  <option value={30}>30 minutos</option>
-                  <option value={45}>45 minutos</option>
-                  <option value={60}>1 hora</option>
-                  <option value={90}>1.5 horas</option>
-                  <option value={120}>2 horas</option>
-                </select>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="recurring"
-                  checked={formData.isRecurring}
-                  onChange={(e) =>
-                    setFormData({ ...formData, isRecurring: e.target.checked })
-                  }
-                  className="form-checkbox"
-                />
-                <label htmlFor="recurring" className="text-body text-sm">
-                  Repetir semanalmente
-                </label>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Notas (opcional)</label>
-                <textarea
-                  value={formData.notes}
-                  onChange={(e) =>
-                    setFormData({ ...formData, notes: e.target.value })
-                  }
-                  className="form-textarea"
-                  rows={2}
-                  placeholder="Notas para esta clase..."
-                />
-              </div>
-
-              <div className="flex gap-2 mt-2">
+        {/* Edit Class Modal */}
+        {showModal && editingClass && (
+          <div className="fixed inset-0 bg-black/50 flex-center z-50">
+            <div className="surface-card w-full max-w-md p-6 m-4">
+              <div className="flex-between mb-6">
+                <div>
+                  <h2 className="text-heading text-lg">Editar Clase</h2>
+                  <p className="text-caption text-sm mt-1">
+                    {editingClass.preparedLesson.title}
+                  </p>
+                </div>
                 <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="btn-secondary btn-md flex-1"
+                  onClick={() => {
+                    setShowModal(false);
+                    setEditingClass(null);
+                  }}
+                  className="btn-ghost btn-icon-sm"
                 >
-                  Cancelar
-                </button>
-                <button type="submit" className="btn-primary btn-md flex-1">
-                  Programar
+                  <span className="material-symbols-outlined">close</span>
                 </button>
               </div>
-            </form>
+
+              <form onSubmit={handleSaveClass} className="flex flex-col gap-4">
+                <div className="form-group">
+                  <label className="form-label">Grupo</label>
+                  <select
+                    value={formData.groupId}
+                    onChange={(e) =>
+                      setFormData({ ...formData, groupId: e.target.value })
+                    }
+                    className="form-select"
+                  >
+                    <option value="">Sin grupo asignado</option>
+                    {groups.map((g) => (
+                      <option key={g.id} value={g.id}>
+                        {g.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Hora de inicio</label>
+                  <input
+                    type="time"
+                    value={formData.startTime}
+                    onChange={(e) =>
+                      setFormData({ ...formData, startTime: e.target.value })
+                    }
+                    className="form-input"
+                    step="300"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Duración (minutos)</label>
+                  <select
+                    value={formData.duration}
+                    onChange={(e) =>
+                      setFormData({ ...formData, duration: parseInt(e.target.value) })
+                    }
+                    className="form-select"
+                  >
+                    <option value={15}>15 minutos</option>
+                    <option value={20}>20 minutos</option>
+                    <option value={25}>25 minutos</option>
+                    <option value={30}>30 minutos</option>
+                    <option value={45}>45 minutos</option>
+                    <option value={60}>1 hora</option>
+                    <option value={90}>1.5 horas</option>
+                    <option value={120}>2 horas</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Notas (opcional)</label>
+                  <textarea
+                    value={formData.notes}
+                    onChange={(e) =>
+                      setFormData({ ...formData, notes: e.target.value })
+                    }
+                    className="form-textarea"
+                    rows={2}
+                    placeholder="Notas para esta clase..."
+                  />
+                </div>
+
+                <div className="flex gap-2 mt-4">
+                  <button
+                    type="button"
+                    onClick={handleDeleteClass}
+                    className="btn-danger btn-md"
+                  >
+                    <span className="material-symbols-outlined text-base">delete</span>
+                    Eliminar
+                  </button>
+                  <div className="flex-1" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowModal(false);
+                      setEditingClass(null);
+                    }}
+                    className="btn-secondary btn-md"
+                  >
+                    Cancelar
+                  </button>
+                  <button type="submit" className="btn-primary btn-md">
+                    Guardar
+                  </button>
+                </div>
+
+                {/* Start Session button if group is assigned */}
+                {editingClass.group && (
+                  <button
+                    type="button"
+                    onClick={() => startSession(editingClass.id)}
+                    className="btn-primary btn-md w-full mt-2"
+                  >
+                    <span className="material-symbols-outlined text-base">play_arrow</span>
+                    Iniciar Sesión
+                  </button>
+                )}
+              </form>
+            </div>
           </div>
-        </div>
-      )}
-    </PageContainer>
+        )}
+      </PageContainer>
+    </DndContext>
   );
 }
