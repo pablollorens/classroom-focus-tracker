@@ -23,12 +23,18 @@ export default function LoginPage() {
                 redirect: false,
             });
 
+            console.log("signIn response:", res);
             if (res?.error) {
                 setError("Invalid email or password");
                 setLoading(false);
+            } else if (res?.ok) {
+                console.log("Login successful, navigating...");
+                // Use full page navigation to ensure server sees fresh session
+                window.location.href = "/dashboard";
             } else {
-                router.push("/dashboard");
-                // Don't set loading to false here to prevent flicker while redirecting
+                console.log("Unexpected response state");
+                setError("Unexpected login response");
+                setLoading(false);
             }
         } catch (err) {
             setError("An unexpected error occurred");

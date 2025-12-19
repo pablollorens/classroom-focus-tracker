@@ -1,20 +1,35 @@
 "use client";
 
-import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { useState, useEffect } from "react";
+import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
 type Role = "student" | "teacher";
 
 export default function Home() {
   const router = useRouter();
-  const [role, setRole] = useState<Role | null>(null);
+  const { data: session, status } = useSession();
+  const [role, setRole] = useState<Role>("student");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [checkingSession, setCheckingSession] = useState(true);
 
   // Teacher form
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
+
+  // Auto-redirect if remembered session exists
+  useEffect(() => {
+    if (status === "loading") return;
+
+    const remembered = localStorage.getItem("rememberSession") === "true";
+    if (session && remembered) {
+      window.location.href = "/dashboard";
+    } else {
+      setCheckingSession(false);
+    }
+  }, [session, status]);
 
   // Student form
   const [username, setUsername] = useState("");
@@ -35,7 +50,14 @@ export default function Home() {
       setError("Credenciales incorrectas");
       setLoading(false);
     } else {
-      router.push("/dashboard");
+      // Store remember me preference
+      if (rememberMe) {
+        localStorage.setItem("rememberSession", "true");
+      } else {
+        localStorage.removeItem("rememberSession");
+      }
+      // Full page navigation to ensure server sees fresh session
+      window.location.href = "/dashboard";
     }
   };
 
@@ -45,10 +67,10 @@ export default function Home() {
     setError("");
 
     try {
-      const res = await fetch("/api/student/session/join", {
+      const res = await fetch("/api/student/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, sessionCode }),
+        body: JSON.stringify({ username, password: sessionCode }),
       });
 
       const data = await res.json();
@@ -67,215 +89,308 @@ export default function Home() {
     }
   };
 
-  return (
-    <div className="min-h-screen surface-base flex flex-col items-center justify-center p-4">
-      {/* Background gradient */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-1/2 -left-1/2 w-full h-full bg-[var(--color-primary)]/5 rounded-full blur-3xl" />
-        <div className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-purple-500/5 rounded-full blur-3xl" />
+  // Show loading while checking session
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#101922]">
+        <div className="size-8 border-2 border-white/30 border-t-[#137fec] rounded-full animate-spin" />
       </div>
+    );
+  }
 
-      <div className="relative z-10 w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center size-16 rounded-2xl bg-gradient-to-br from-[var(--color-primary)] to-blue-600 text-white shadow-lg shadow-[var(--color-primary)]/30 mb-4">
-            <span className="material-symbols-outlined text-3xl">
+  return (
+    <div className="bg-[#f6f7f8] dark:bg-[#101922] font-[Manrope] text-slate-900 dark:text-white antialiased min-h-screen flex flex-col overflow-x-hidden">
+      {/* Header */}
+      <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-[#283039] px-6 lg:px-10 py-4 bg-white dark:bg-[#111418] z-20">
+        <div className="flex items-center gap-3 text-slate-900 dark:text-white">
+          <div className="size-10 flex items-center justify-center bg-gradient-to-br from-[#137fec] to-blue-600 rounded-xl shadow-lg shadow-blue-500/20 text-white">
+            <span className="material-symbols-outlined text-[24px]">
               center_focus_strong
             </span>
           </div>
-          <h1 className="text-heading-xl">
-            <span className="text-white">Classroom</span>{" "}
-            <span className="text-[var(--color-primary)]">Focus</span>
-          </h1>
-          <p className="text-body mt-2">
-            Monitorea y mejora la atención de tus estudiantes
-          </p>
+          <h2 className="text-xl font-extrabold leading-tight tracking-tight">
+            Classroom Focus Tracker
+          </h2>
+        </div>
+        <div className="flex items-center gap-4"></div>
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col items-center justify-center p-4 relative w-full">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+          <div className="absolute -top-[20%] -right-[10%] w-[600px] h-[600px] bg-[#137fec]/10 rounded-full blur-[100px]"></div>
+          <div className="absolute bottom-[0%] left-[0%] w-[400px] h-[400px] bg-[#137fec]/5 rounded-full blur-[80px]"></div>
         </div>
 
-        {/* Role Selector */}
-        {!role ? (
-          <div className="surface-card p-6">
-            <p className="text-center text-body mb-6">Soy un...</p>
-            <div className="grid grid-cols-2 gap-4">
-              <button
-                onClick={() => setRole("student")}
-                className="surface-card-interactive p-6 flex flex-col items-center gap-3 group"
-              >
-                <div className="icon-container-lg bg-purple-500/10 text-purple-400 group-hover:bg-purple-500/20 transition-colors">
-                  <span className="material-symbols-outlined text-2xl">
-                    school
-                  </span>
-                </div>
-                <span className="text-heading text-sm">Estudiante</span>
-              </button>
-              <button
-                onClick={() => setRole("teacher")}
-                className="surface-card-interactive p-6 flex flex-col items-center gap-3 group"
-              >
-                <div className="icon-container-lg icon-primary group-hover:bg-[var(--color-primary)]/20 transition-colors">
-                  <span className="material-symbols-outlined text-2xl">
-                    person
-                  </span>
-                </div>
-                <span className="text-heading text-sm">Profesor</span>
-              </button>
+        <div className="w-full max-w-5xl flex flex-col lg:flex-row gap-8 lg:gap-16 items-center justify-center z-10 py-10">
+          {/* Left Column: Hero Text */}
+          <div className="flex-1 max-w-[480px] flex flex-col gap-6 text-center lg:text-left">
+            <div className="space-y-4">
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#137fec]/10 border border-[#137fec]/20 text-[#137fec] text-xs font-bold uppercase tracking-wider">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#137fec] opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-[#137fec]"></span>
+                </span>
+                Monitoreo en tiempo real
+              </span>
+              <h1 className="text-4xl lg:text-5xl font-extrabold leading-tight tracking-tight text-slate-900 dark:text-white">
+                Gestión educativa simplificada e{" "}
+                <span className="text-[#137fec]">inteligente</span>.
+              </h1>
+              <p className="text-slate-500 dark:text-[#9dabb9] text-lg leading-relaxed">
+                Conecta profesores y estudiantes en un entorno digital fluido.
+                Accede a herramientas de seguimiento, asistencia y
+                calificaciones desde cualquier lugar.
+              </p>
             </div>
           </div>
-        ) : (
-          <div className="surface-card p-6">
-            {/* Back button */}
-            <button
-              onClick={() => {
-                setRole(null);
-                setError("");
-              }}
-              className="flex items-center gap-1 text-body text-sm mb-6 hover:text-white transition-colors"
-            >
-              <span className="material-symbols-outlined text-lg">
-                arrow_back
-              </span>
-              Volver
-            </button>
 
-            {/* Role Header */}
-            <div className="flex items-center gap-3 mb-6">
-              <div
-                className={`icon-container-md ${
-                  role === "student"
-                    ? "bg-purple-500/10 text-purple-400"
-                    : "icon-primary"
-                }`}
-              >
-                <span className="material-symbols-outlined text-xl">
-                  {role === "student" ? "school" : "person"}
-                </span>
-              </div>
-              <div>
-                <h2 className="text-heading text-lg">
-                  {role === "student" ? "Acceso Estudiante" : "Acceso Profesor"}
+          {/* Right Column: Login Card */}
+          <div className="flex-1 w-full max-w-[460px]">
+            <div className="bg-white dark:bg-[#1c252e] rounded-2xl shadow-xl dark:shadow-none border border-slate-200 dark:border-[#2c3642] overflow-hidden">
+              <div className="p-8 pb-4">
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+                  Bienvenido de nuevo
                 </h2>
-                <p className="text-caption">
-                  {role === "student"
-                    ? "Ingresa a tu sesión de clase"
-                    : "Inicia sesión en tu cuenta"}
+                <p className="text-slate-500 dark:text-[#9dabb9]">
+                  Selecciona tu perfil para continuar
                 </p>
               </div>
-            </div>
 
-            {/* Error message */}
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-4">
-                <p className="text-red-400 text-sm">{error}</p>
+              {/* Role Selection */}
+              <div className="px-8 flex gap-4 mb-6">
+                <label className="cursor-pointer flex-1 group">
+                  <input
+                    type="radio"
+                    name="role"
+                    value="student"
+                    checked={role === "student"}
+                    onChange={() => {
+                      setRole("student");
+                      setError("");
+                    }}
+                    className="peer sr-only"
+                  />
+                  <div className="role-card-transition h-full flex flex-col items-center justify-center gap-3 p-4 rounded-xl border-2 border-slate-100 dark:border-[#2c3642] bg-slate-50 dark:bg-[#151c24] peer-checked:border-[#137fec] peer-checked:bg-[#137fec]/5 dark:peer-checked:bg-[#137fec]/10 transition-all duration-300 hover:transform hover:-translate-y-1 hover:shadow-lg hover:shadow-[#137fec]/20">
+                    <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-[#283039] text-slate-500 dark:text-slate-400 group-hover:bg-[#137fec]/20 group-hover:text-[#137fec] peer-checked:bg-[#137fec] peer-checked:text-white flex items-center justify-center transition-colors">
+                      <span className="material-symbols-outlined">school</span>
+                    </div>
+                    <span className="font-bold text-sm text-slate-600 dark:text-slate-300 peer-checked:text-[#137fec]">
+                      Estudiante
+                    </span>
+                  </div>
+                </label>
+                <label className="cursor-pointer flex-1 group">
+                  <input
+                    type="radio"
+                    name="role"
+                    value="teacher"
+                    checked={role === "teacher"}
+                    onChange={() => {
+                      setRole("teacher");
+                      setError("");
+                    }}
+                    className="peer sr-only"
+                  />
+                  <div className="role-card-transition h-full flex flex-col items-center justify-center gap-3 p-4 rounded-xl border-2 border-slate-100 dark:border-[#2c3642] bg-slate-50 dark:bg-[#151c24] peer-checked:border-[#137fec] peer-checked:bg-[#137fec]/5 dark:peer-checked:bg-[#137fec]/10 transition-all duration-300 hover:transform hover:-translate-y-1 hover:shadow-lg hover:shadow-[#137fec]/20">
+                    <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-[#283039] text-slate-500 dark:text-slate-400 group-hover:bg-[#137fec]/20 group-hover:text-[#137fec] peer-checked:bg-[#137fec] peer-checked:text-white flex items-center justify-center transition-colors">
+                      <span className="material-symbols-outlined">
+                        cast_for_education
+                      </span>
+                    </div>
+                    <span className="font-bold text-sm text-slate-600 dark:text-slate-300 peer-checked:text-[#137fec]">
+                      Profesor
+                    </span>
+                  </div>
+                </label>
               </div>
-            )}
 
-            {/* Teacher Form */}
-            {role === "teacher" && (
-              <form onSubmit={handleTeacherLogin} className="flex flex-col gap-4">
-                <div className="form-group">
-                  <label htmlFor="email" className="form-label">
-                    Correo electrónico
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="form-input"
-                    placeholder="tu@email.com"
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="password" className="form-label">
-                    Contraseña
-                  </label>
-                  <input
-                    type="password"
-                    id="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="form-input"
-                    placeholder="••••••••"
-                    required
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="btn-primary btn-lg w-full mt-2"
-                >
-                  {loading ? (
-                    <>
-                      <div className="size-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Iniciando...
-                    </>
-                  ) : (
-                    "Iniciar Sesión"
-                  )}
-                </button>
-              </form>
-            )}
-
-            {/* Student Form */}
-            {role === "student" && (
-              <form onSubmit={handleStudentLogin} className="flex flex-col gap-4">
-                <div className="form-group">
-                  <label htmlFor="username" className="form-label">
-                    Tu nombre
-                  </label>
-                  <input
-                    type="text"
-                    id="username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className="form-input"
-                    placeholder="Ej: Juan García"
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="sessionCode" className="form-label">
-                    Código de sesión
-                  </label>
-                  <input
-                    type="text"
-                    id="sessionCode"
-                    value={sessionCode}
-                    onChange={(e) => setSessionCode(e.target.value.toUpperCase())}
-                    className="form-input text-center text-lg tracking-widest font-mono"
-                    placeholder="ABC123"
-                    maxLength={6}
-                    required
-                  />
-                  <p className="form-hint">
-                    Pide el código a tu profesor
+              {/* Error message */}
+              {error && (
+                <div className="mx-8 mb-6 bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+                  <p className="text-red-400 text-sm flex items-center gap-2">
+                    <span className="material-symbols-outlined text-lg">error</span>
+                    {error}
                   </p>
                 </div>
+              )}
+
+              {/* Login Form */}
+              <form
+                onSubmit={role === "teacher" ? handleTeacherLogin : handleStudentLogin}
+                className="px-8 pb-8 flex flex-col gap-5"
+              >
+                {/* Teacher Fields */}
+                {role === "teacher" && (
+                  <>
+                    <div className="space-y-1">
+                      <label
+                        className="text-sm font-semibold text-slate-700 dark:text-slate-300"
+                        htmlFor="email"
+                      >
+                        Correo Institucional
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                          <span className="material-symbols-outlined text-[20px]">
+                            mail
+                          </span>
+                        </div>
+                        <input
+                          id="email"
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="block w-full rounded-lg border-slate-200 dark:border-[#36414e] bg-slate-50 dark:bg-[#111418] text-slate-900 dark:text-white pl-10 pr-4 py-3 text-sm focus:border-[#137fec] focus:ring-1 focus:ring-[#137fec] placeholder:text-slate-400 dark:placeholder:text-[#5f6e7c] outline-none transition-all"
+                          placeholder="nombre@institucion.edu"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-center">
+                        <label
+                          className="text-sm font-semibold text-slate-700 dark:text-slate-300"
+                          htmlFor="password"
+                        >
+                          Contraseña
+                        </label>
+                        <a
+                          href="#"
+                          className="text-xs font-medium text-[#137fec] hover:text-blue-400"
+                        >
+                          ¿Olvidaste tu contraseña?
+                        </a>
+                      </div>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                          <span className="material-symbols-outlined text-[20px]">
+                            lock
+                          </span>
+                        </div>
+                        <input
+                          id="password"
+                          type="password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className="block w-full rounded-lg border-slate-200 dark:border-[#36414e] bg-slate-50 dark:bg-[#111418] text-slate-900 dark:text-white pl-10 pr-4 py-3 text-sm focus:border-[#137fec] focus:ring-1 focus:ring-[#137fec] placeholder:text-slate-400 dark:placeholder:text-[#5f6e7c] outline-none transition-all"
+                          placeholder="••••••••"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center pt-2">
+                      <input
+                        id="remember-me"
+                        type="checkbox"
+                        checked={rememberMe}
+                        onChange={(e) => setRememberMe(e.target.checked)}
+                        className="h-4 w-4 rounded border-slate-300 dark:border-[#36414e] text-[#137fec] focus:ring-[#137fec] bg-slate-50 dark:bg-[#111418]"
+                      />
+                      <label
+                        htmlFor="remember-me"
+                        className="ml-2 block text-sm text-slate-600 dark:text-slate-400"
+                      >
+                        Recordar sesión
+                      </label>
+                    </div>
+                  </>
+                )}
+
+                {/* Student Fields */}
+                {role === "student" && (
+                  <>
+                    <div className="space-y-1">
+                      <label
+                        className="text-sm font-semibold text-slate-700 dark:text-slate-300"
+                        htmlFor="username"
+                      >
+                        Usuario
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                          <span className="material-symbols-outlined text-[20px]">
+                            person
+                          </span>
+                        </div>
+                        <input
+                          id="username"
+                          type="text"
+                          value={username}
+                          onChange={(e) => setUsername(e.target.value)}
+                          className="block w-full rounded-lg border-slate-200 dark:border-[#36414e] bg-slate-50 dark:bg-[#111418] text-slate-900 dark:text-white pl-10 pr-4 py-3 text-sm focus:border-[#137fec] focus:ring-1 focus:ring-[#137fec] placeholder:text-slate-400 dark:placeholder:text-[#5f6e7c] outline-none transition-all"
+                          placeholder="nombre.apellido"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <label
+                        className="text-sm font-semibold text-slate-700 dark:text-slate-300"
+                        htmlFor="sessionCode"
+                      >
+                        Código de Sesión
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                          <span className="material-symbols-outlined text-[20px]">
+                            key
+                          </span>
+                        </div>
+                        <input
+                          id="sessionCode"
+                          type="text"
+                          value={sessionCode}
+                          onChange={(e) => setSessionCode(e.target.value)}
+                          maxLength={6}
+                          className="block w-full rounded-lg border-slate-200 dark:border-[#36414e] bg-slate-50 dark:bg-[#111418] text-slate-900 dark:text-white pl-10 pr-4 py-3 text-sm font-mono tracking-widest focus:border-[#137fec] focus:ring-1 focus:ring-[#137fec] placeholder:text-slate-400 dark:placeholder:text-[#5f6e7c] outline-none transition-all"
+                          placeholder="abc123"
+                          required
+                        />
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        Solicita el código a tu profesor
+                      </p>
+                    </div>
+                  </>
+                )}
+
                 <button
                   type="submit"
                   disabled={loading}
-                  className="btn-primary btn-lg w-full mt-2 bg-purple-600 hover:bg-purple-700"
+                  className="mt-2 flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-4 bg-[#137fec] hover:bg-blue-600 text-white text-base font-bold leading-normal tracking-[0.015em] transition-colors shadow-lg shadow-blue-500/20 disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                   {loading ? (
                     <>
-                      <div className="size-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Conectando...
+                      <div className="size-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                      <span className="truncate">Procesando...</span>
                     </>
                   ) : (
-                    "Unirse a la Clase"
+                    <>
+                      <span className="truncate">
+                        {role === "student" ? "Unirse a la Clase" : "Ingresar al Portal"}
+                      </span>
+                      <span className="material-symbols-outlined ml-2 text-sm">
+                        arrow_forward
+                      </span>
+                    </>
                   )}
                 </button>
               </form>
-            )}
+            </div>
           </div>
-        )}
+        </div>
+      </main>
 
-        {/* Footer */}
-        <p className="text-caption text-center mt-8">
-          &copy; {new Date().getFullYear()} Classroom Focus Tracker
-        </p>
-      </div>
+      {/* Footer */}
+      <footer className="w-full py-6 px-10 text-center border-t border-slate-200 dark:border-[#283039] bg-white dark:bg-[#111418]">
+        <div className="flex flex-col md:flex-row justify-between items-center max-w-7xl mx-auto gap-4">
+          <p className="text-sm text-slate-500 dark:text-[#9dabb9]">
+            &copy; {new Date().getFullYear()} Classroom Focus Tracker. Todos los
+            derechos reservados.
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
