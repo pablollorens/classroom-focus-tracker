@@ -95,6 +95,9 @@ export async function PUT(request: Request, { params }: RouteParams) {
   }
 }
 
+// PATCH /api/scheduled-classes/[id] - alias for PUT
+export { PUT as PATCH };
+
 // DELETE /api/scheduled-classes/[id]
 export async function DELETE(request: Request, { params }: RouteParams) {
   try {

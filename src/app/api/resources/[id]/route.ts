@@ -80,6 +80,11 @@ export async function PUT(request: Request, { params }: RouteParams) {
   }
 }
 
+// PATCH /api/resources/[id] - alias for PUT
+export async function PATCH(request: Request, { params }: RouteParams) {
+  return PUT(request, { params });
+}
+
 // DELETE /api/resources/[id]
 export async function DELETE(request: Request, { params }: RouteParams) {
   try {

@@ -1,16 +1,42 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { cookies } from "next/headers";
+import { jwtVerify } from "jose";
 import { prisma } from "@/lib/prisma";
 
+const SECRET_KEY = new TextEncoder().encode(
+    process.env.NEXTAUTH_SECRET || "supersecretvalue123"
+);
+
+interface StudentTokenPayload {
+    studentId: string;
+    sessionId: string;
+    username: string;
+    role: string;
+}
+
 export async function POST(req: Request) {
-    const session = await getServerSession(authOptions);
-
-    if (!session || !session.user || (session.user as any).role !== "student") {
-        return new NextResponse("Unauthorized", { status: 401 });
-    }
-
     try {
+        // Get student token from cookie
+        const cookieStore = await cookies();
+        const token = cookieStore.get("student_token")?.value;
+
+        if (!token) {
+            return new NextResponse("Unauthorized", { status: 401 });
+        }
+
+        // Verify JWT
+        let payload: StudentTokenPayload;
+        try {
+            const verified = await jwtVerify(token, SECRET_KEY);
+            payload = verified.payload as unknown as StudentTokenPayload;
+        } catch {
+            return new NextResponse("Invalid token", { status: 401 });
+        }
+
+        if (payload.role !== "student") {
+            return new NextResponse("Unauthorized", { status: 401 });
+        }
+
         const body = await req.json();
         const { sessionId, status } = body;
 
@@ -18,14 +44,12 @@ export async function POST(req: Request) {
             return new NextResponse("Missing fields", { status: 400 });
         }
 
-        // Update Attendance
-        // We use updateMany because we don't have the unique ID readily available without querying, 
-        // but we have the composite key in schema, so update works best with unique check or updateMany
-        // actually we defined @@unique([sessionId, studentId]) so we can use update.
+        // Verify the sessionId matches the token
+        if (sessionId !== payload.sessionId) {
+            return new NextResponse("Session mismatch", { status: 403 });
+        }
 
-        const studentId = (session.user as any).id;
-
-
+        const studentId = payload.studentId;
 
         // 1. Fetch current state
         const currentRecord = await prisma.sessionAttendance.findUnique({
@@ -35,7 +59,17 @@ export async function POST(req: Request) {
         });
 
         if (!currentRecord) {
-            return new NextResponse("Record not found", { status: 404 });
+            // Create attendance record if it doesn't exist
+            await prisma.sessionAttendance.create({
+                data: {
+                    sessionId,
+                    studentId,
+                    currentStatus: status,
+                    lastHeartbeat: new Date(),
+                    lastStatusChange: new Date(),
+                }
+            });
+            return NextResponse.json({ success: true });
         }
 
         const now = new Date();

@@ -38,6 +38,14 @@ export async function POST(request: Request, { params }: RouteParams) {
       );
     }
 
+    // Require group to be assigned before starting session
+    if (!scheduledClass.groupId) {
+      return NextResponse.json(
+        { error: "Group must be assigned before starting a session" },
+        { status: 400 }
+      );
+    }
+
     // Check if there's already an active session for this group
     const existingSession = await prisma.session.findFirst({
       where: {
@@ -62,17 +70,19 @@ export async function POST(request: Request, { params }: RouteParams) {
         preparedLessonId: scheduledClass.preparedLessonId,
         isActive: true,
       },
-      include: {
-        group: { select: { name: true } },
-        preparedLesson: { select: { title: true } },
-      },
     });
+
+    // Fetch group and lesson names for response
+    const [group, lesson] = await Promise.all([
+      prisma.group.findUnique({ where: { id: scheduledClass.groupId }, select: { name: true } }),
+      prisma.preparedLesson.findUnique({ where: { id: scheduledClass.preparedLessonId }, select: { title: true } }),
+    ]);
 
     return NextResponse.json({
       sessionId: newSession.id,
       password: newSession.password,
-      group: newSession.group.name,
-      lesson: newSession.preparedLesson.title,
+      group: group?.name,
+      lesson: lesson?.title,
     });
   } catch (error) {
     console.error("Error starting session:", error);

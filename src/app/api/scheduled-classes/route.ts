@@ -69,7 +69,7 @@ export async function POST(request: Request) {
     } = body;
 
     // Validations
-    if (!groupId || !preparedLessonId || !startTime || !duration) {
+    if (!preparedLessonId || !startTime || !duration) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -90,28 +90,35 @@ export async function POST(request: Request) {
       );
     }
 
-    // Verify ownership of group and lesson
-    const [group, lesson] = await Promise.all([
-      prisma.group.findFirst({
-        where: { id: groupId, teacherId: session.user.id },
-      }),
-      prisma.preparedLesson.findFirst({
-        where: { id: preparedLessonId, teacherId: session.user.id },
-      }),
-    ]);
+    // Verify ownership of group (if provided) and lesson
+    const lesson = await prisma.preparedLesson.findFirst({
+      where: { id: preparedLessonId, teacherId: session.user.id },
+    });
 
-    if (!group || !lesson) {
+    if (!lesson) {
       return NextResponse.json(
-        { error: "Group or lesson not found" },
+        { error: "Lesson not found" },
         { status: 404 }
       );
     }
 
+    if (groupId) {
+      const group = await prisma.group.findFirst({
+        where: { id: groupId, teacherId: session.user.id },
+      });
+      if (!group) {
+        return NextResponse.json(
+          { error: "Group not found" },
+          { status: 404 }
+        );
+      }
+    }
+
     const scheduledClass = await prisma.scheduledClass.create({
       data: {
-        teacherId: session.user.id,
-        groupId,
-        preparedLessonId,
+        teacher: { connect: { id: session.user.id } },
+        preparedLesson: { connect: { id: preparedLessonId } },
+        ...(groupId && { group: { connect: { id: groupId } } }),
         dayOfWeek: isRecurring ? dayOfWeek : null,
         specificDate: !isRecurring ? new Date(specificDate) : null,
         startTime,

@@ -24,6 +24,7 @@ export async function POST(req: Request) {
                 isActive: true,
             },
             include: {
+                preparedLesson: true,
                 group: {
                     include: {
                         students: true,
@@ -63,8 +64,14 @@ export async function POST(req: Request) {
             .setExpirationTime("4h") // Session duration
             .sign(SECRET_KEY);
 
-        // 4. Return success and token
-        const response = NextResponse.json({ success: true, student });
+        // 4. Return success with session data for frontend
+        const response = NextResponse.json({
+            success: true,
+            sessionId: session.id,
+            lessonTitle: session.preparedLesson?.title || "Clase en progreso",
+            studentName: `${student.firstName} ${student.lastName}`,
+            student,
+        });
 
         // Set cookie
         response.cookies.set("student_token", token, {
