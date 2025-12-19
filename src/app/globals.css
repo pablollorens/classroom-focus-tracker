@@ -1,8 +1,9 @@
 @import 'tailwindcss';
 
-/* Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Noto+Sans:wght@400;500;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+/* Enable class-based dark mode (instead of prefers-color-scheme) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Google Fonts - Imported above */
 
 /* === Design System === */
 @import '../styles/_variables.css';
@@ -45,21 +46,48 @@
 }
 
 body {
-  background-color: var(--surface-base);
-  color: var(--text-primary);
   font-family: 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-h1, h2, h3, h4, h5, h6 {
+.dark body {
+  background-color: var(--surface-base);
   color: var(--text-primary);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-weight: 700;
   letter-spacing: -0.025em;
 }
 
+.dark h1,
+.dark h2,
+.dark h3,
+.dark h4,
+.dark h5,
+.dark h6 {
+  color: var(--text-primary);
+}
+
 /* === Material Symbols Config === */
 .material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  display: inline-block;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: normal;
+  word-wrap: normal;
+  white-space: nowrap;
+  direction: ltr;
   font-variation-settings:
     'FILL' 0,
     'wght' 400,
@@ -77,9 +105,12 @@ h1, h2, h3, h4, h5, h6 {
 
 /* === Animations === */
 @keyframes pulse-glow {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 15px rgba(19, 127, 236, 0.3);
   }
+
   50% {
     box-shadow: 0 0 25px rgba(19, 127, 236, 0.3);
   }
