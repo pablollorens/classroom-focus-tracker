@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use, useMemo } from "react";
+import { useState, useEffect, use, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PageContainer } from "@/components/layout";
@@ -27,6 +27,7 @@ interface AttendanceRecord {
   currentStatus: string;
   lastHeartbeat: string;
   lastStatusChange: string;
+  handRaised: boolean;
   student: {
     id: string;
     firstName: string;
@@ -49,7 +50,7 @@ export default function TeacherSessionPage({
   const [loading, setLoading] = useState(true);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
-  const [, setTick] = useState(0);
+  const [tick, setTick] = useState(0);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [showEndSessionModal, setShowEndSessionModal] = useState(false);
 
@@ -66,6 +67,10 @@ export default function TeacherSessionPage({
       setShowToast(true);
     }
   };
+
+  const handleCloseToast = useCallback(() => {
+    setShowToast(false);
+  }, []);
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -163,7 +168,7 @@ export default function TeacherSessionPage({
     return Math.floor(remaining);
   };
 
-  // Stats calculation
+  // Stats calculation - tick dependency ensures recalculation every second for OFFLINE detection
   const stats = useMemo(() => {
     const result = { active: 0, distracted: 0, idle: 0, offline: 0 };
     attendance.forEach((record) => {
@@ -177,7 +182,8 @@ export default function TeacherSessionPage({
       else result.offline++;
     });
     return result;
-  }, [attendance]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attendance, tick]);
 
   // Session timer - calculated every render (triggered by tick interval)
   const sessionDuration = (() => {
@@ -207,7 +213,8 @@ export default function TeacherSessionPage({
       );
       return statusFilter === "ALL" || effectiveStatus === statusFilter;
     });
-  }, [attendance, statusFilter]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attendance, statusFilter, tick]);
 
   // Sort by status priority: distracted first, then idle, then active, then offline
   const sortedAttendance = useMemo(() => {
@@ -223,7 +230,8 @@ export default function TeacherSessionPage({
       const statusB = getEffectiveStatus(b.currentStatus, b.lastHeartbeat);
       return statusPriority[statusA] - statusPriority[statusB];
     });
-  }, [filteredAttendance]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredAttendance, tick]);
 
   if (loading) {
     return (
@@ -472,9 +480,16 @@ export default function TeacherSessionPage({
 
                     {/* Name & Username */}
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-[var(--text-primary)] truncate">
-                        {record.student.firstName} {record.student.lastName}
-                      </h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-[var(--text-primary)] truncate">
+                          {record.student.firstName} {record.student.lastName}
+                        </h3>
+                        {record.handRaised && (
+                          <span className="material-symbols-outlined text-yellow-400 text-lg animate-bounce">
+                            front_hand
+                          </span>
+                        )}
+                      </div>
                       <p className="text-caption">@{record.student.username}</p>
                     </div>
                   </div>
@@ -534,7 +549,7 @@ export default function TeacherSessionPage({
       <Toast
         message={toastMessage}
         isVisible={showToast}
-        onClose={() => setShowToast(false)}
+        onClose={handleCloseToast}
       />
 
       {/* End Session Confirmation Modal */}
