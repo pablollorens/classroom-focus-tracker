@@ -72,12 +72,55 @@ export async function POST(req: Request) {
             });
         }
 
-        // Para otros sitios, verificar headers
+        // Dominios conocidos que NO permiten embedding
+        const blockedDomains = [
+            "google.com",
+            "www.google.com",
+            "facebook.com",
+            "www.facebook.com",
+            "twitter.com",
+            "x.com",
+            "instagram.com",
+            "www.instagram.com",
+            "linkedin.com",
+            "www.linkedin.com",
+            "amazon.com",
+            "www.amazon.com",
+            "netflix.com",
+            "www.netflix.com",
+            "github.com",
+            "stackoverflow.com",
+            "reddit.com",
+            "www.reddit.com",
+            "tiktok.com",
+            "www.tiktok.com",
+            "whatsapp.com",
+            "web.whatsapp.com",
+            "outlook.com",
+            "mail.google.com",
+            "drive.google.com",
+        ];
+
+        const isKnownBlocked = blockedDomains.some(domain =>
+            hostname === domain || hostname.endsWith("." + domain)
+        );
+
+        if (isKnownBlocked) {
+            return NextResponse.json({
+                allowed: false,
+                reason: "Este sitio no permite embedding"
+            });
+        }
+
+        // Para otros sitios, intentar verificar headers
         try {
             const response = await fetch(url, {
-                method: "HEAD",
+                method: "GET",
                 redirect: "follow",
-                signal: AbortSignal.timeout(5000)
+                signal: AbortSignal.timeout(5000),
+                headers: {
+                    "User-Agent": "Mozilla/5.0 (compatible; EmbedChecker/1.0)"
+                }
             });
 
             const xFrameOptions = response.headers.get("x-frame-options");
@@ -106,20 +149,20 @@ export async function POST(req: Request) {
                 }
             }
 
-            // No hay headers de bloqueo, probablemente funcione
+            // No hay headers de bloqueo detectados
             return NextResponse.json({
-                allowed: true,
-                reason: "Sin restricciones detectadas (puede funcionar)",
+                allowed: null,
+                reason: "No se detectaron restricciones, pero puede fallar",
                 type: getResourceType(url),
-                warning: "Algunos sitios bloquean iframes de otras formas. Recomendamos probar."
+                warning: "Recomendamos usar sitios conocidos como YouTube, Vimeo, etc."
             });
 
-        } catch (fetchError) {
-            // Error al verificar, no podemos confirmar
+        } catch {
+            // Error al verificar
             return NextResponse.json({
                 allowed: null,
                 reason: "No se pudo verificar el sitio",
-                warning: "Intenta con la URL de todos modos o usa un sitio conocido"
+                warning: "Usa sitios conocidos como YouTube, Vimeo, Google Forms"
             });
         }
 
