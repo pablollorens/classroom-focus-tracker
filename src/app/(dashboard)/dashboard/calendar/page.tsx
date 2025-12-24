@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, Fragment, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { PageContainer } from "@/components/layout";
+import { Toast } from "@/components/Toast";
 import {
   DndContext,
   DragOverlay,
@@ -26,7 +27,7 @@ interface ScheduledClass {
   isRecurring: boolean;
   notes: string | null;
   group: { id: string; name: string } | null;
-  preparedLesson: { id: string; title: string };
+  preparedLesson: { id: string; title: string } | null;
 }
 
 interface PreparedLesson {
@@ -55,11 +56,11 @@ const CLASS_COLORS = [
   "bg-cyan-600",
 ];
 
-// Draggable Lesson Component
-function DraggableLessonItem({ lesson }: { lesson: PreparedLesson }) {
+// Draggable Group Component
+function DraggableGroupItem({ group, colorClass }: { group: Group; colorClass: string }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: `lesson-${lesson.id}`,
-    data: { type: "lesson", lesson },
+    id: `group-${group.id}`,
+    data: { type: "group", group },
   });
 
   return (
@@ -71,13 +72,8 @@ function DraggableLessonItem({ lesson }: { lesson: PreparedLesson }) {
         isDragging ? "opacity-50" : ""
       }`}
     >
-      <span className="material-symbols-outlined text-[var(--color-primary)] text-lg mb-1">
-        menu_book
-      </span>
-      <p className="text-sm text-white font-medium truncate">{lesson.title}</p>
-      {lesson.duration && (
-        <p className="text-xs text-[var(--text-muted)]">{lesson.duration} min</p>
-      )}
+      <div className={`w-3 h-3 rounded-full ${colorClass} mb-1`} />
+      <p className="text-sm text-white font-medium truncate">{group.name}</p>
     </div>
   );
 }
@@ -120,7 +116,7 @@ function DraggableCalendarEvent({
         {sc.group?.name || "Sin grupo"}
       </span>
       <span className="text-white/80 text-xs truncate">
-        {sc.preparedLesson.title}
+        {sc.preparedLesson?.title || "Sin lección"}
       </span>
       <span className="text-white/60 text-[10px]">
         {sc.startTime} - {sc.duration}min
@@ -141,7 +137,7 @@ function DroppableCalendarCell({
   onEditClass,
   onCellClick,
   dropPreview,
-  activeLesson,
+  activeGroup,
   draggingEvent,
 }: {
   dayIndex: number;
@@ -154,7 +150,7 @@ function DroppableCalendarCell({
   onEditClass: (sc: ScheduledClass) => void;
   onCellClick: (dayIndex: number, hour: number, minutes: number) => void;
   dropPreview: { dayIndex: number; hour: number; minutes: number } | null;
-  activeLesson: PreparedLesson | null;
+  activeGroup: Group | null;
   draggingEvent: ScheduledClass | null;
 }) {
   const cellRef = useRef<HTMLDivElement>(null);
@@ -220,19 +216,19 @@ function DroppableCalendarCell({
       })}
 
       {/* Drop Preview Ghost */}
-      {dropPreview && dropPreview.dayIndex === dayIndex && dropPreview.hour === hour && (activeLesson || draggingEvent) && (
+      {dropPreview && dropPreview.dayIndex === dayIndex && dropPreview.hour === hour && (activeGroup || draggingEvent) && (
         <div
           className="absolute left-1 right-1 bg-[var(--color-primary)]/40 border-2 border-dashed border-[var(--color-primary)] rounded-lg pointer-events-none z-10 flex flex-col justify-center px-2 overflow-hidden"
           style={{
             top: `${(dropPreview.minutes / 60) * CELL_HEIGHT}px`,
-            height: `${((activeLesson?.duration || draggingEvent?.duration || 60) / 60) * CELL_HEIGHT - 4}px`,
+            height: `${((draggingEvent?.duration || 60) / 60) * CELL_HEIGHT - 4}px`,
           }}
         >
           <span className="text-white text-xs font-bold truncate">
-            {activeLesson?.title || draggingEvent?.preparedLesson.title}
+            {activeGroup?.name || draggingEvent?.group?.name}
           </span>
           <span className="text-white/70 text-[10px]">
-            {hour.toString().padStart(2, "0")}:{dropPreview.minutes.toString().padStart(2, "0")} - {activeLesson?.duration || draggingEvent?.duration || 60}min
+            {hour.toString().padStart(2, "0")}:{dropPreview.minutes.toString().padStart(2, "0")} - {draggingEvent?.duration || 60}min
           </span>
         </div>
       )}
@@ -258,7 +254,7 @@ export default function CalendarPage() {
   const [initialLoadDone, setInitialLoadDone] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingClass, setEditingClass] = useState<ScheduledClass | null>(null);
-  const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
+  const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
   const [draggingEvent, setDraggingEvent] = useState<ScheduledClass | null>(null);
   const [dropPreview, setDropPreview] = useState<{
     dayIndex: number;
@@ -268,12 +264,17 @@ export default function CalendarPage() {
 
   // Form state for editing
   const [formData, setFormData] = useState({
-    groupId: "",
+    preparedLessonId: "",
     startTime: "",
     duration: 60,
     isRecurring: false,
     notes: "",
   });
+
+  // Toast state
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastType, setToastType] = useState<"success" | "error">("success");
 
   useEffect(() => {
     fetchData(!initialLoadDone);
@@ -395,9 +396,8 @@ export default function CalendarPage() {
   // Click on existing scheduled class to edit
   const handleEditClass = (sc: ScheduledClass) => {
     setEditingClass(sc);
-    const [hour, minutes] = sc.startTime.split(":").map(Number);
     setFormData({
-      groupId: sc.group?.id || "",
+      preparedLessonId: sc.preparedLesson?.id || "",
       startTime: sc.startTime,
       duration: sc.duration,
       isRecurring: sc.isRecurring,
@@ -408,12 +408,12 @@ export default function CalendarPage() {
 
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
-    if (active.data.current?.type === "lesson") {
-      setActiveLessonId(active.data.current.lesson.id);
+    if (active.data.current?.type === "group") {
+      setActiveGroupId(active.data.current.group.id);
       setDraggingEvent(null);
     } else if (active.data.current?.type === "event") {
       setDraggingEvent(active.data.current.scheduledClass);
-      setActiveLessonId(null);
+      setActiveGroupId(null);
     }
   };
 
@@ -452,7 +452,7 @@ export default function CalendarPage() {
     const { active, over } = event;
     const preview = dropPreview;
     const movingEvent = draggingEvent;
-    setActiveLessonId(null);
+    setActiveGroupId(null);
     setDraggingEvent(null);
     setDropPreview(null);
 
@@ -495,19 +495,19 @@ export default function CalendarPage() {
       return;
     }
 
-    // Creating new from lesson
-    const lesson = active.data.current?.lesson as PreparedLesson | undefined;
-    if (!lesson) return;
+    // Creating new from group
+    const group = active.data.current?.group as Group | undefined;
+    if (!group) return;
 
     try {
       const res = await fetch("/api/scheduled-classes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          preparedLessonId: lesson.id,
+          groupId: group.id,
           specificDate: specificDate.toISOString(),
           startTime,
-          duration: lesson.duration || 60,
+          duration: 60, // Default duration, can be changed in edit modal
           isRecurring: false,
         }),
       });
@@ -533,7 +533,7 @@ export default function CalendarPage() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          groupId: formData.groupId || null,
+          preparedLessonId: formData.preparedLessonId || null,
           startTime: formData.startTime,
           duration: formData.duration,
           isRecurring: formData.isRecurring,
@@ -580,15 +580,25 @@ export default function CalendarPage() {
       if (res.ok) {
         const data = await res.json();
         router.push(`/dashboard/sessions/${data.sessionId}`);
+      } else {
+        const errorData = await res.json();
+        setToastMessage(errorData.error || "Error al iniciar la sesión");
+        setToastType("error");
+        setShowToast(true);
       }
     } catch (error) {
       console.error("Error starting session:", error);
+      setToastMessage("Error al iniciar la sesión");
+      setToastType("error");
+      setShowToast(true);
     }
   };
 
   const getClassesForSlot = (dayIndex: number, hour: number) => {
     const dayOfWeek = dayIndex + 1;
-    const dateStr = weekDays[dayIndex].toISOString().split("T")[0];
+    // Use local date format to avoid timezone issues with toISOString()
+    const weekDay = weekDays[dayIndex];
+    const dateStr = `${weekDay.getFullYear()}-${String(weekDay.getMonth() + 1).padStart(2, '0')}-${String(weekDay.getDate()).padStart(2, '0')}`;
 
     return scheduledClasses.filter((sc) => {
       const startHour = parseInt(sc.startTime.split(":")[0]);
@@ -597,8 +607,10 @@ export default function CalendarPage() {
       if (sc.isRecurring) {
         return sc.dayOfWeek === dayOfWeek && matchesTime;
       } else if (sc.specificDate) {
-        const classDate = new Date(sc.specificDate).toISOString().split("T")[0];
-        return classDate === dateStr && matchesTime;
+        // Parse and format using local date to match the weekDay format
+        const classDate = new Date(sc.specificDate);
+        const classDateStr = `${classDate.getFullYear()}-${String(classDate.getMonth() + 1).padStart(2, '0')}-${String(classDate.getDate()).padStart(2, '0')}`;
+        return classDateStr === dateStr && matchesTime;
       }
       return false;
     });
@@ -610,8 +622,8 @@ export default function CalendarPage() {
     return CLASS_COLORS[index % CLASS_COLORS.length];
   };
 
-  const activeLesson = activeLessonId
-    ? lessons.find((l) => l.id === activeLessonId) ?? null
+  const activeGroup = activeGroupId
+    ? groups.find((g) => g.id === activeGroupId) ?? null
     : null;
 
   // Require 8px movement before drag starts (allows click for edit)
@@ -758,7 +770,7 @@ export default function CalendarPage() {
                           onEditClass={handleEditClass}
                           onCellClick={handleCellClick}
                           dropPreview={dropPreview}
-                          activeLesson={activeLesson}
+                          activeGroup={activeGroup}
                           draggingEvent={draggingEvent}
                         />
                       );
@@ -769,20 +781,24 @@ export default function CalendarPage() {
               </div>
             </div>
 
-            {/* Lesson Bank Sidebar */}
+            {/* Groups Sidebar */}
             <div className="w-72 border-l border-[var(--border-default)] bg-[var(--surface-darker)] p-4 overflow-y-auto custom-scrollbar hidden lg:block">
-              <h2 className="text-heading text-sm mb-2">Banco de Lecciones</h2>
+              <h2 className="text-heading text-sm mb-2">Grupos</h2>
               <p className="text-caption text-xs mb-4">
-                Arrastra una lección al calendario
+                Arrastra un grupo al calendario
               </p>
-              {lessons.length === 0 ? (
+              {groups.length === 0 ? (
                 <p className="text-caption text-center py-8">
-                  No hay lecciones creadas
+                  No hay grupos creados
                 </p>
               ) : (
                 <div className="flex flex-col gap-2">
-                  {lessons.map((lesson) => (
-                    <DraggableLessonItem key={lesson.id} lesson={lesson} />
+                  {groups.map((group) => (
+                    <DraggableGroupItem
+                      key={group.id}
+                      group={group}
+                      colorClass={getColorForGroup(group.id)}
+                    />
                   ))}
                 </div>
               )}
@@ -792,13 +808,11 @@ export default function CalendarPage() {
 
         {/* Drag Overlay - follows cursor */}
         <DragOverlay dropAnimation={null}>
-          {activeLesson && (
+          {activeGroup && (
             <div className="lesson-bank-item opacity-90 shadow-xl rotate-3 scale-105">
-              <span className="material-symbols-outlined text-[var(--color-primary)] text-lg mb-1">
-                menu_book
-              </span>
+              <div className={`w-3 h-3 rounded-full ${getColorForGroup(activeGroup.id)} mb-1`} />
               <p className="text-sm text-white font-medium truncate">
-                {activeLesson.title}
+                {activeGroup.name}
               </p>
             </div>
           )}
@@ -810,7 +824,7 @@ export default function CalendarPage() {
                 {draggingEvent.group?.name || "Sin grupo"}
               </span>
               <span className="text-white/80 text-xs truncate">
-                {draggingEvent.preparedLesson.title}
+                {draggingEvent.preparedLesson?.title || "Sin lección"}
               </span>
             </div>
           )}
@@ -824,7 +838,7 @@ export default function CalendarPage() {
                 <div>
                   <h2 className="text-heading text-lg">Editar Clase</h2>
                   <p className="text-caption text-sm mt-1">
-                    {editingClass.preparedLesson.title}
+                    {editingClass.group?.name || "Sin grupo"}
                   </p>
                 </div>
                 <button
@@ -840,18 +854,18 @@ export default function CalendarPage() {
 
               <form onSubmit={handleSaveClass} className="flex flex-col gap-4">
                 <div className="form-group">
-                  <label className="form-label">Grupo</label>
+                  <label className="form-label">Lección</label>
                   <select
-                    value={formData.groupId}
+                    value={formData.preparedLessonId}
                     onChange={(e) =>
-                      setFormData({ ...formData, groupId: e.target.value })
+                      setFormData({ ...formData, preparedLessonId: e.target.value })
                     }
                     className="form-select"
                   >
-                    <option value="">Sin grupo asignado</option>
-                    {groups.map((g) => (
-                      <option key={g.id} value={g.id}>
-                        {g.name}
+                    <option value="">Seleccionar lección...</option>
+                    {lessons.map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {l.title}
                       </option>
                     ))}
                   </select>
@@ -928,8 +942,8 @@ export default function CalendarPage() {
                   </button>
                 </div>
 
-                {/* Start Session button if group is assigned */}
-                {editingClass.group && (
+                {/* Start Session button - requires both group and lesson */}
+                {editingClass.group && editingClass.preparedLesson ? (
                   <button
                     type="button"
                     onClick={() => startSession(editingClass.id)}
@@ -938,11 +952,26 @@ export default function CalendarPage() {
                     <span className="material-symbols-outlined text-base">play_arrow</span>
                     Iniciar Sesión
                   </button>
+                ) : (
+                  <p className="text-caption text-center text-sm mt-2">
+                    {!editingClass.group && !editingClass.preparedLesson
+                      ? "Asigna un grupo y una lección para iniciar"
+                      : !editingClass.preparedLesson
+                      ? "Asigna una lección para poder iniciar la sesión"
+                      : "Asigna un grupo para poder iniciar la sesión"}
+                  </p>
                 )}
               </form>
             </div>
           </div>
         )}
+
+        <Toast
+          message={toastMessage}
+          isVisible={showToast}
+          onClose={() => setShowToast(false)}
+          type={toastType}
+        />
       </PageContainer>
     </DndContext>
   );

@@ -456,7 +456,7 @@ export default function TeacherSessionPage({
               return (
                 <div
                   key={record.id}
-                  className={`rounded-xl border-2 p-4 transition-all ${cardStyles[effectiveStatus]}`}
+                  className={`rounded-xl border-2 p-4 transition-all ${cardStyles[effectiveStatus]} ${record.handRaised ? "animate-bounce ring-2 ring-yellow-400" : ""}`}
                 >
                   <div className="flex items-start gap-3 mb-3">
                     {/* Avatar */}
@@ -485,7 +485,7 @@ export default function TeacherSessionPage({
                           {record.student.firstName} {record.student.lastName}
                         </h3>
                         {record.handRaised && (
-                          <span className="material-symbols-outlined text-yellow-400 text-lg animate-bounce">
+                          <span className="material-symbols-outlined text-yellow-400 text-lg">
                             front_hand
                           </span>
                         )}

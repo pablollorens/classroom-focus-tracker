@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { PageContainer } from "@/components/layout";
 import { StatusBadge, EmptyState } from "@/components/common";
+import { LiveSessionIllustration } from "@/components/illustrations";
 
 interface Group {
   id: string;
@@ -132,9 +133,7 @@ export default function DashboardPage() {
                 >
                   <div className="card-session-image bg-gradient-to-br from-[var(--color-primary)] to-blue-600">
                     <div className="absolute inset-0 flex-center">
-                      <span className="material-symbols-outlined text-white/30 text-6xl">
-                        school
-                      </span>
+                      <LiveSessionIllustration className="w-full h-full p-4" />
                     </div>
                     <div className="absolute top-3 left-3">
                       <StatusBadge status="live" />

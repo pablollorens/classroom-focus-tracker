@@ -72,18 +72,45 @@ export async function GET() {
             },
             lesson: {
                 title: session.preparedLesson.title,
-                exercises: session.preparedLesson.exercises.map(ex => ({
-                    id: ex.id,
-                    orderIndex: ex.orderIndex,
-                    resource: ex.resource ? {
-                        id: ex.resource.id,
-                        title: ex.resource.title,
-                        type: ex.resource.type,
-                        url: ex.resource.url,
-                        content: ex.resource.content,
-                        duration: ex.resource.duration
-                    } : null
-                }))
+                exercises: session.preparedLesson.exercises.map(ex => {
+                    // Si tiene Resource asociado, usarlo
+                    if (ex.resource) {
+                        return {
+                            id: ex.id,
+                            orderIndex: ex.orderIndex,
+                            resource: {
+                                id: ex.resource.id,
+                                title: ex.resource.title,
+                                type: ex.resource.type,
+                                url: ex.resource.url,
+                                content: ex.resource.content,
+                                duration: ex.resource.duration
+                            }
+                        };
+                    }
+                    // Fallback: usar datos legacy del ejercicio (title, url)
+                    if (ex.title && ex.url) {
+                        const isYoutube = ex.url.includes("youtube.com") || ex.url.includes("youtu.be");
+                        return {
+                            id: ex.id,
+                            orderIndex: ex.orderIndex,
+                            resource: {
+                                id: ex.id,
+                                title: ex.title,
+                                type: isYoutube ? "VIDEO" : "URL",
+                                url: ex.url,
+                                content: null,
+                                duration: null
+                            }
+                        };
+                    }
+                    // Sin datos
+                    return {
+                        id: ex.id,
+                        orderIndex: ex.orderIndex,
+                        resource: null
+                    };
+                })
             }
         });
 

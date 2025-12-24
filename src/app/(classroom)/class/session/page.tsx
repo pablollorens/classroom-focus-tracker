@@ -294,38 +294,17 @@ export default function StudentSessionPage() {
                                         </div>
                                     )}
                                     {selectedExercise.resource.type === "PDF" && selectedExercise.resource.url && (
-                                        <div className="flex flex-col items-center gap-4">
-                                            <iframe
-                                                src={selectedExercise.resource.url}
-                                                className="w-full max-w-4xl h-[70vh] rounded-lg border border-[#283039]"
-                                            />
-                                            <a
-                                                href={selectedExercise.resource.url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="flex items-center gap-2 px-4 py-2 bg-[#137fec] hover:bg-[#1171d4] rounded-lg transition-colors"
-                                            >
-                                                <span className="material-symbols-outlined text-lg">open_in_new</span>
-                                                Abrir en nueva pestaña
-                                            </a>
-                                        </div>
+                                        <iframe
+                                            src={selectedExercise.resource.url}
+                                            className="w-full h-full rounded-lg border border-[#283039]"
+                                        />
                                     )}
                                     {selectedExercise.resource.type === "URL" && selectedExercise.resource.url && (
-                                        <div className="flex flex-col items-center gap-4">
-                                            <iframe
-                                                src={selectedExercise.resource.url}
-                                                className="w-full max-w-5xl h-[70vh] rounded-lg border border-[#283039]"
-                                            />
-                                            <a
-                                                href={selectedExercise.resource.url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="flex items-center gap-2 px-4 py-2 bg-[#137fec] hover:bg-[#1171d4] rounded-lg transition-colors"
-                                            >
-                                                <span className="material-symbols-outlined text-lg">open_in_new</span>
-                                                Abrir en nueva pestaña
-                                            </a>
-                                        </div>
+                                        <iframe
+                                            src={selectedExercise.resource.url}
+                                            className="w-full h-full rounded-lg border border-[#283039]"
+                                            sandbox="allow-scripts allow-same-origin allow-forms"
+                                        />
                                     )}
                                     {selectedExercise.resource.type === "TEXT" && selectedExercise.resource.content && (
                                         <div className="max-w-3xl mx-auto prose prose-invert">

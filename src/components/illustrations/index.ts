@@ -1,0 +1,1 @@
+export { LiveSessionIllustration } from "./LiveSessionIllustration";

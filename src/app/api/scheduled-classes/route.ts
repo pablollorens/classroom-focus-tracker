@@ -68,8 +68,8 @@ export async function POST(request: Request) {
       notes,
     } = body;
 
-    // Validations
-    if (!preparedLessonId || !startTime || !duration) {
+    // Validations - preparedLessonId is now optional (can be assigned later)
+    if (!startTime || !duration) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -90,16 +90,18 @@ export async function POST(request: Request) {
       );
     }
 
-    // Verify ownership of group (if provided) and lesson
-    const lesson = await prisma.preparedLesson.findFirst({
-      where: { id: preparedLessonId, teacherId: session.user.id },
-    });
+    // Verify ownership of group and lesson (if provided)
+    if (preparedLessonId) {
+      const lesson = await prisma.preparedLesson.findFirst({
+        where: { id: preparedLessonId, teacherId: session.user.id },
+      });
 
-    if (!lesson) {
-      return NextResponse.json(
-        { error: "Lesson not found" },
-        { status: 404 }
-      );
+      if (!lesson) {
+        return NextResponse.json(
+          { error: "Lesson not found" },
+          { status: 404 }
+        );
+      }
     }
 
     if (groupId) {
@@ -117,7 +119,7 @@ export async function POST(request: Request) {
     const scheduledClass = await prisma.scheduledClass.create({
       data: {
         teacher: { connect: { id: session.user.id } },
-        preparedLesson: { connect: { id: preparedLessonId } },
+        ...(preparedLessonId && { preparedLesson: { connect: { id: preparedLessonId } } }),
         ...(groupId && { group: { connect: { id: groupId } } }),
         dayOfWeek: isRecurring ? dayOfWeek : null,
         specificDate: !isRecurring ? new Date(specificDate) : null,

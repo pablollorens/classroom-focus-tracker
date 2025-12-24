@@ -46,6 +46,14 @@ export async function POST(request: Request, { params }: RouteParams) {
       );
     }
 
+    // Require lesson to be assigned before starting session
+    if (!scheduledClass.preparedLessonId) {
+      return NextResponse.json(
+        { error: "Lesson must be assigned before starting a session" },
+        { status: 400 }
+      );
+    }
+
     // Check if there's already an active session for this group
     const existingSession = await prisma.session.findFirst({
       where: {
