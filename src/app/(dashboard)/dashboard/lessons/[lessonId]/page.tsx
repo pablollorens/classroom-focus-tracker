@@ -214,6 +214,12 @@ export default function LessonEditorPage({
   const [manualUrl, setManualUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  // URL validation
+  const [urlValidation, setUrlValidation] = useState<{
+    status: "idle" | "checking" | "allowed" | "blocked" | "unknown";
+    message: string;
+  }>({ status: "idle", message: "" });
+
   // Sidebar toggle (mobile)
   const [showSidebar, setShowSidebar] = useState(false);
 
@@ -239,6 +245,44 @@ export default function LessonEditorPage({
   useEffect(() => {
     fetchData();
   }, [lessonId]);
+
+  // Validate URL when it changes
+  useEffect(() => {
+    if (!manualUrl || manualUrl.length < 10) {
+      setUrlValidation({ status: "idle", message: "" });
+      return;
+    }
+
+    // Debounce
+    const timer = setTimeout(async () => {
+      setUrlValidation({ status: "checking", message: "Verificando URL..." });
+
+      try {
+        const res = await fetch("/api/check-embed", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: manualUrl }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.allowed === true) {
+            setUrlValidation({ status: "allowed", message: data.reason });
+          } else if (data.allowed === false) {
+            setUrlValidation({ status: "blocked", message: data.reason });
+          } else {
+            setUrlValidation({ status: "unknown", message: data.reason || "No se pudo verificar" });
+          }
+        } else {
+          setUrlValidation({ status: "unknown", message: "Error al verificar" });
+        }
+      } catch {
+        setUrlValidation({ status: "unknown", message: "Error de conexión" });
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [manualUrl]);
 
   const fetchData = async () => {
     try {
@@ -671,23 +715,59 @@ export default function LessonEditorPage({
                   id="exerciseUrl"
                   value={manualUrl}
                   onChange={(e) => setManualUrl(e.target.value)}
-                  className="form-input mt-1"
+                  className={`form-input mt-1 ${
+                    urlValidation.status === "blocked" ? "border-red-500 focus:ring-red-500" :
+                    urlValidation.status === "allowed" ? "border-green-500 focus:ring-green-500" : ""
+                  }`}
                   placeholder="https://"
                   required
                 />
+                {/* URL Validation Indicator */}
+                {urlValidation.status !== "idle" && (
+                  <div className={`mt-2 flex items-center gap-2 text-sm ${
+                    urlValidation.status === "checking" ? "text-[var(--text-muted)]" :
+                    urlValidation.status === "allowed" ? "text-green-400" :
+                    urlValidation.status === "blocked" ? "text-red-400" :
+                    "text-yellow-400"
+                  }`}>
+                    {urlValidation.status === "checking" && (
+                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    )}
+                    {urlValidation.status === "allowed" && (
+                      <span className="material-symbols-outlined text-lg">check_circle</span>
+                    )}
+                    {urlValidation.status === "blocked" && (
+                      <span className="material-symbols-outlined text-lg">cancel</span>
+                    )}
+                    {urlValidation.status === "unknown" && (
+                      <span className="material-symbols-outlined text-lg">help</span>
+                    )}
+                    <span>{urlValidation.message}</span>
+                  </div>
+                )}
+                {urlValidation.status === "blocked" && (
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">
+                    Sitios recomendados: YouTube, Vimeo, Google Docs, Quizlet, Kahoot
+                  </p>
+                )}
               </div>
 
               <div className="flex justify-end gap-3 pt-4">
                 <button
                   type="button"
-                  onClick={() => setShowAddForm(false)}
+                  onClick={() => {
+                    setShowAddForm(false);
+                    setManualTitle("");
+                    setManualUrl("");
+                    setUrlValidation({ status: "idle", message: "" });
+                  }}
                   className="btn-ghost btn-md"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  disabled={submitting}
+                  disabled={submitting || urlValidation.status === "blocked" || urlValidation.status === "checking"}
                   className="btn-primary btn-md"
                 >
                   {submitting ? "Añadiendo..." : "Añadir"}

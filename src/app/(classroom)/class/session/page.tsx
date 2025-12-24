@@ -284,13 +284,20 @@ export default function StudentSessionPage() {
                                 {/* Resource Content */}
                                 <div className="flex-1 overflow-auto p-4">
                                     {selectedExercise.resource.type === "VIDEO" && selectedExercise.resource.url && (
-                                        <div className="aspect-video w-full max-w-4xl mx-auto">
-                                            <iframe
-                                                src={selectedExercise.resource.url.replace("watch?v=", "embed/")}
-                                                className="w-full h-full rounded-lg"
-                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                                allowFullScreen
-                                            />
+                                        <div className="flex flex-col gap-4 max-w-4xl mx-auto">
+                                            <div className="aspect-video w-full">
+                                                <iframe
+                                                    src={selectedExercise.resource.url.replace("watch?v=", "embed/")}
+                                                    className="w-full h-full rounded-lg"
+                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                    allowFullScreen
+                                                />
+                                            </div>
+                                            {selectedExercise.resource.content && (
+                                                <div className="bg-[#1c252e] rounded-xl p-4 border border-[#283039]">
+                                                    <p className="text-[#9dabb9] whitespace-pre-wrap">{selectedExercise.resource.content}</p>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                     {selectedExercise.resource.type === "PDF" && selectedExercise.resource.url && (
@@ -306,10 +313,14 @@ export default function StudentSessionPage() {
                                             sandbox="allow-scripts allow-same-origin allow-forms"
                                         />
                                     )}
-                                    {selectedExercise.resource.type === "TEXT" && selectedExercise.resource.content && (
-                                        <div className="max-w-3xl mx-auto prose prose-invert">
-                                            <div className="bg-[#1c252e] rounded-xl p-6 border border-[#283039] whitespace-pre-wrap">
-                                                {selectedExercise.resource.content}
+                                    {selectedExercise.resource.type === "TEXT" && (
+                                        <div className="max-w-3xl mx-auto">
+                                            <div className="bg-[#1c252e] rounded-xl p-6 border border-[#283039]">
+                                                <div className="prose prose-invert max-w-none">
+                                                    <p className="whitespace-pre-wrap text-white leading-relaxed">
+                                                        {selectedExercise.resource.content || "Sin contenido"}
+                                                    </p>
+                                                </div>
                                             </div>
                                         </div>
                                     )}
