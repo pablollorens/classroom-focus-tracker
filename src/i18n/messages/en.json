@@ -1,0 +1,119 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "close": "Close",
+    "back": "Back",
+    "error": "An error occurred",
+    "success": "Success",
+    "confirm": "Confirm"
+  },
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "library": "Library",
+    "schedule": "Schedule",
+    "reports": "Reports"
+  },
+  "header": {
+    "appName": "Classroom Focus Tracker"
+  },
+  "dashboard": {
+    "welcome": "Hello, {name}",
+    "subtitle": "Manage your classes and monitor student progress.",
+    "liveNow": "Live Now",
+    "myClasses": "My Classes",
+    "newGroup": "New Group",
+    "groupName": "Group Name",
+    "groupNamePlaceholder": "E.g. Math 101",
+    "noGroups": "No groups",
+    "noGroupsDescription": "Create your first class group to start monitoring your students.",
+    "createGroup": "Create Group",
+    "students": "{count} students",
+    "viewSession": "View Session",
+    "quickLinks": "Quick Links",
+    "libraryDescription": "Manage resources and lessons",
+    "scheduleDescription": "Schedule your classes",
+    "reportsDescription": "Coming soon"
+  },
+  "lessons": {
+    "title": "Library",
+    "newLesson": "New Lesson",
+    "lessonTitle": "Lesson Title",
+    "description": "Description",
+    "exercises": "Exercises",
+    "resources": "Resources",
+    "noLessons": "No lessons",
+    "noLessonsDescription": "Create your first lesson to get started.",
+    "createLesson": "Create Lesson",
+    "addExercise": "Add Exercise",
+    "exerciseTitle": "Exercise Title",
+    "exerciseType": "Type",
+    "url": "URL",
+    "content": "Content"
+  },
+  "calendar": {
+    "title": "Schedule",
+    "today": "Today",
+    "thisWeek": "This Week",
+    "noClasses": "No classes scheduled",
+    "noClassesDescription": "Schedule classes from your lesson library.",
+    "scheduleClass": "Schedule Class",
+    "selectGroup": "Select group",
+    "selectLesson": "Select lesson",
+    "dateTime": "Date & Time",
+    "startSession": "Start Session"
+  },
+  "session": {
+    "live": "Live",
+    "ended": "Ended",
+    "startSession": "Start Session",
+    "endSession": "End Session",
+    "students": "Students",
+    "focused": "Focused",
+    "distracted": "Distracted",
+    "away": "Away",
+    "content": "Content",
+    "raiseHand": "Raise Hand",
+    "lowerHand": "Lower Hand",
+    "handRaised": "Hand Raised",
+    "waitingForContent": "Waiting for content...",
+    "teacherWillShare": "The teacher will share content soon.",
+    "currentExercise": "Current Exercise",
+    "noActiveSession": "No active session"
+  },
+  "auth": {
+    "signIn": "Sign In",
+    "signOut": "Sign Out",
+    "signingIn": "Signing in...",
+    "studentLogin": "Student Login",
+    "teacherLogin": "Teacher Login",
+    "enterUsername": "Enter the username provided by your teacher",
+    "username": "Username",
+    "usernamePlaceholder": "e.g. math101.john.doe",
+    "invalidUsername": "Invalid username. Please check with your teacher.",
+    "somethingWentWrong": "Something went wrong",
+    "areYouTeacher": "Are you a teacher?"
+  },
+  "groups": {
+    "title": "Group",
+    "students": "Students",
+    "addStudent": "Add Student",
+    "studentName": "Student Name",
+    "studentNamePlaceholder": "E.g. John Doe",
+    "noStudents": "No students",
+    "noStudentsDescription": "Add students to this group to get started.",
+    "deleteGroup": "Delete Group",
+    "deleteGroupConfirm": "Are you sure you want to delete this group? All students and session data will be permanently removed.",
+    "deleteStudent": "Remove Student",
+    "deleteStudentConfirm": "Are you sure you want to remove this student from the group?"
+  },
+  "modal": {
+    "confirmDelete": "Delete",
+    "cancel": "Cancel"
+  }
+}

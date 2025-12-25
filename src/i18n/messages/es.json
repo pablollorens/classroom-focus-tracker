@@ -1,0 +1,119 @@
+{
+  "common": {
+    "loading": "Cargando...",
+    "save": "Guardar",
+    "saving": "Guardando...",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "close": "Cerrar",
+    "back": "Volver",
+    "error": "Ha ocurrido un error",
+    "success": "Éxito",
+    "confirm": "Confirmar"
+  },
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "library": "Biblioteca",
+    "schedule": "Horario",
+    "reports": "Reportes"
+  },
+  "header": {
+    "appName": "Classroom Focus Tracker"
+  },
+  "dashboard": {
+    "welcome": "Hola, {name}",
+    "subtitle": "Gestiona tus clases y monitorea el progreso de tus estudiantes.",
+    "liveNow": "En Vivo Ahora",
+    "myClasses": "Mis Clases",
+    "newGroup": "Nuevo Grupo",
+    "groupName": "Nombre del Grupo",
+    "groupNamePlaceholder": "Ej: Matemáticas 101",
+    "noGroups": "Sin grupos",
+    "noGroupsDescription": "Crea tu primer grupo de clase para comenzar a monitorear a tus estudiantes.",
+    "createGroup": "Crear Grupo",
+    "students": "{count} estudiantes",
+    "viewSession": "Ver Sesión",
+    "quickLinks": "Accesos Rápidos",
+    "libraryDescription": "Gestiona recursos y lecciones",
+    "scheduleDescription": "Programa tus clases",
+    "reportsDescription": "Próximamente"
+  },
+  "lessons": {
+    "title": "Biblioteca",
+    "newLesson": "Nueva Lección",
+    "lessonTitle": "Título de la Lección",
+    "description": "Descripción",
+    "exercises": "Ejercicios",
+    "resources": "Recursos",
+    "noLessons": "Sin lecciones",
+    "noLessonsDescription": "Crea tu primera lección para comenzar.",
+    "createLesson": "Crear Lección",
+    "addExercise": "Agregar Ejercicio",
+    "exerciseTitle": "Título del Ejercicio",
+    "exerciseType": "Tipo",
+    "url": "URL",
+    "content": "Contenido"
+  },
+  "calendar": {
+    "title": "Horario",
+    "today": "Hoy",
+    "thisWeek": "Esta Semana",
+    "noClasses": "Sin clases programadas",
+    "noClassesDescription": "Programa clases desde tu biblioteca de lecciones.",
+    "scheduleClass": "Programar Clase",
+    "selectGroup": "Seleccionar grupo",
+    "selectLesson": "Seleccionar lección",
+    "dateTime": "Fecha y Hora",
+    "startSession": "Iniciar Sesión"
+  },
+  "session": {
+    "live": "En Vivo",
+    "ended": "Finalizada",
+    "startSession": "Iniciar Sesión",
+    "endSession": "Finalizar Sesión",
+    "students": "Estudiantes",
+    "focused": "Enfocado",
+    "distracted": "Distraído",
+    "away": "Ausente",
+    "content": "Contenido",
+    "raiseHand": "Levantar Mano",
+    "lowerHand": "Bajar Mano",
+    "handRaised": "Mano Levantada",
+    "waitingForContent": "Esperando contenido...",
+    "teacherWillShare": "El profesor compartirá contenido pronto.",
+    "currentExercise": "Ejercicio Actual",
+    "noActiveSession": "Sin sesión activa"
+  },
+  "auth": {
+    "signIn": "Iniciar Sesión",
+    "signOut": "Cerrar Sesión",
+    "signingIn": "Iniciando sesión...",
+    "studentLogin": "Login Estudiante",
+    "teacherLogin": "Login Profesor",
+    "enterUsername": "Ingresa el usuario proporcionado por tu profesor",
+    "username": "Usuario",
+    "usernamePlaceholder": "ej: math101.juan.perez",
+    "invalidUsername": "Usuario inválido. Consulta con tu profesor.",
+    "somethingWentWrong": "Algo salió mal",
+    "areYouTeacher": "¿Eres profesor?"
+  },
+  "groups": {
+    "title": "Grupo",
+    "students": "Estudiantes",
+    "addStudent": "Agregar Estudiante",
+    "studentName": "Nombre del Estudiante",
+    "studentNamePlaceholder": "Ej: Juan Pérez",
+    "noStudents": "Sin estudiantes",
+    "noStudentsDescription": "Agrega estudiantes a este grupo para comenzar.",
+    "deleteGroup": "Eliminar Grupo",
+    "deleteGroupConfirm": "¿Estás seguro de que quieres eliminar este grupo? Todos los estudiantes y datos de sesiones serán eliminados permanentemente.",
+    "deleteStudent": "Eliminar Estudiante",
+    "deleteStudentConfirm": "¿Estás seguro de que quieres eliminar a este estudiante del grupo?"
+  },
+  "modal": {
+    "confirmDelete": "Eliminar",
+    "cancel": "Cancelar"
+  }
+}

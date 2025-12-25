@@ -1,0 +1,119 @@
+{
+  "common": {
+    "loading": "Laden...",
+    "save": "Opslaan",
+    "saving": "Opslaan...",
+    "cancel": "Annuleren",
+    "delete": "Verwijderen",
+    "edit": "Bewerken",
+    "create": "Maken",
+    "close": "Sluiten",
+    "back": "Terug",
+    "error": "Er is een fout opgetreden",
+    "success": "Gelukt",
+    "confirm": "Bevestigen"
+  },
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "library": "Bibliotheek",
+    "schedule": "Rooster",
+    "reports": "Rapporten"
+  },
+  "header": {
+    "appName": "Classroom Focus Tracker"
+  },
+  "dashboard": {
+    "welcome": "Hallo, {name}",
+    "subtitle": "Beheer je klassen en volg de voortgang van je leerlingen.",
+    "liveNow": "Nu Live",
+    "myClasses": "Mijn Klassen",
+    "newGroup": "Nieuwe Groep",
+    "groupName": "Groepsnaam",
+    "groupNamePlaceholder": "Bijv. Wiskunde 101",
+    "noGroups": "Geen groepen",
+    "noGroupsDescription": "Maak je eerste klasgroep om je leerlingen te volgen.",
+    "createGroup": "Groep Maken",
+    "students": "{count} leerlingen",
+    "viewSession": "Sessie Bekijken",
+    "quickLinks": "Snelkoppelingen",
+    "libraryDescription": "Beheer bronnen en lessen",
+    "scheduleDescription": "Plan je lessen",
+    "reportsDescription": "Binnenkort beschikbaar"
+  },
+  "lessons": {
+    "title": "Bibliotheek",
+    "newLesson": "Nieuwe Les",
+    "lessonTitle": "Lestitel",
+    "description": "Beschrijving",
+    "exercises": "Oefeningen",
+    "resources": "Bronnen",
+    "noLessons": "Geen lessen",
+    "noLessonsDescription": "Maak je eerste les om te beginnen.",
+    "createLesson": "Les Maken",
+    "addExercise": "Oefening Toevoegen",
+    "exerciseTitle": "Oefeningstitel",
+    "exerciseType": "Type",
+    "url": "URL",
+    "content": "Inhoud"
+  },
+  "calendar": {
+    "title": "Rooster",
+    "today": "Vandaag",
+    "thisWeek": "Deze Week",
+    "noClasses": "Geen lessen gepland",
+    "noClassesDescription": "Plan lessen vanuit je lesbibliotheek.",
+    "scheduleClass": "Les Plannen",
+    "selectGroup": "Selecteer groep",
+    "selectLesson": "Selecteer les",
+    "dateTime": "Datum & Tijd",
+    "startSession": "Sessie Starten"
+  },
+  "session": {
+    "live": "Live",
+    "ended": "Beëindigd",
+    "startSession": "Sessie Starten",
+    "endSession": "Sessie Beëindigen",
+    "students": "Leerlingen",
+    "focused": "Gefocust",
+    "distracted": "Afgeleid",
+    "away": "Afwezig",
+    "content": "Inhoud",
+    "raiseHand": "Hand Opsteken",
+    "lowerHand": "Hand Laten Zakken",
+    "handRaised": "Hand Opgestoken",
+    "waitingForContent": "Wachten op inhoud...",
+    "teacherWillShare": "De leraar zal binnenkort inhoud delen.",
+    "currentExercise": "Huidige Oefening",
+    "noActiveSession": "Geen actieve sessie"
+  },
+  "auth": {
+    "signIn": "Inloggen",
+    "signOut": "Uitloggen",
+    "signingIn": "Inloggen...",
+    "studentLogin": "Leerling Login",
+    "teacherLogin": "Leraar Login",
+    "enterUsername": "Voer de gebruikersnaam in die je leraar je heeft gegeven",
+    "username": "Gebruikersnaam",
+    "usernamePlaceholder": "bijv. wiskunde101.jan.jansen",
+    "invalidUsername": "Ongeldige gebruikersnaam. Vraag het aan je leraar.",
+    "somethingWentWrong": "Er ging iets mis",
+    "areYouTeacher": "Ben je een leraar?"
+  },
+  "groups": {
+    "title": "Groep",
+    "students": "Leerlingen",
+    "addStudent": "Leerling Toevoegen",
+    "studentName": "Naam Leerling",
+    "studentNamePlaceholder": "Bijv. Jan Jansen",
+    "noStudents": "Geen leerlingen",
+    "noStudentsDescription": "Voeg leerlingen toe aan deze groep om te beginnen.",
+    "deleteGroup": "Groep Verwijderen",
+    "deleteGroupConfirm": "Weet je zeker dat je deze groep wilt verwijderen? Alle leerlingen en sessiegegevens worden permanent verwijderd.",
+    "deleteStudent": "Leerling Verwijderen",
+    "deleteStudentConfirm": "Weet je zeker dat je deze leerling uit de groep wilt verwijderen?"
+  },
+  "modal": {
+    "confirmDelete": "Verwijderen",
+    "cancel": "Annuleren"
+  }
+}
