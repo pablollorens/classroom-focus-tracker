@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { PageContainer } from "@/components/layout";
 import { ResourceIcon, EmptyState, ConfirmModal } from "@/components/common";
 
@@ -28,15 +29,11 @@ interface Lesson {
 
 type TabType = "resources" | "lessons";
 
-const resourceTypes: { value: ResourceType | "ALL"; label: string }[] = [
-  { value: "ALL", label: "Todos" },
-  { value: "VIDEO", label: "Video" },
-  { value: "PDF", label: "PDF" },
-  { value: "URL", label: "Enlace" },
-  { value: "TEXT", label: "Texto" },
-];
+const RESOURCE_TYPE_VALUES: (ResourceType | "ALL")[] = ["ALL", "VIDEO", "PDF", "URL", "TEXT"];
 
 export default function LibraryPage() {
+  const t = useTranslations("lessons");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<TabType>(
@@ -285,7 +282,7 @@ export default function LibraryPage() {
         <div className="flex-center h-64">
           <div className="flex flex-col items-center gap-3">
             <div className="size-8 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
-            <span className="text-body">Cargando biblioteca...</span>
+            <span className="text-body">{t("loadingLibrary")}</span>
           </div>
         </div>
       </PageContainer>
@@ -296,9 +293,9 @@ export default function LibraryPage() {
     <PageContainer>
       {/* Header */}
       <section>
-        <h1 className="text-heading-xl mb-2">Biblioteca</h1>
+        <h1 className="text-heading-xl mb-2">{t("title")}</h1>
         <p className="text-body">
-          Gestiona tus recursos educativos y organiza lecciones.
+          {t("subtitle")}
         </p>
       </section>
 
@@ -315,7 +312,7 @@ export default function LibraryPage() {
           >
             <span className="flex items-center gap-2">
               <span className="material-symbols-outlined text-xl">folder</span>
-              Recursos
+              {t("tabResources")}
               <span className="bg-[var(--surface-overlay)] px-2 py-0.5 rounded-full text-xs">
                 {resources.length}
               </span>
@@ -333,7 +330,7 @@ export default function LibraryPage() {
               <span className="material-symbols-outlined text-xl">
                 local_library
               </span>
-              Lecciones
+              {t("tabLessons")}
               <span className="bg-[var(--surface-overlay)] px-2 py-0.5 rounded-full text-xs">
                 {lessons.length}
               </span>
@@ -354,8 +351,8 @@ export default function LibraryPage() {
               type="text"
               placeholder={
                 activeTab === "resources"
-                  ? "Buscar recursos..."
-                  : "Buscar lecciones..."
+                  ? t("searchResources")
+                  : t("searchLessons")
               }
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -366,17 +363,17 @@ export default function LibraryPage() {
           {/* Type Filter (Resources only) */}
           {activeTab === "resources" && (
             <div className="flex gap-1 overflow-x-auto pb-1">
-              {resourceTypes.map((type) => (
+              {RESOURCE_TYPE_VALUES.map((value) => (
                 <button
-                  key={type.value}
-                  onClick={() => setTypeFilter(type.value)}
+                  key={value}
+                  onClick={() => setTypeFilter(value)}
                   className={`px-3 py-1.5 text-sm font-medium rounded-full whitespace-nowrap transition-colors ${
-                    typeFilter === type.value
+                    typeFilter === value
                       ? "bg-[var(--color-primary)] text-white"
                       : "bg-[var(--surface-overlay)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"
                   }`}
                 >
-                  {type.label}
+                  {t(`filter${value === "ALL" ? "All" : value === "URL" ? "URL" : value.charAt(0) + value.slice(1).toLowerCase()}`)}
                 </button>
               ))}
             </div>
@@ -393,7 +390,7 @@ export default function LibraryPage() {
           className="btn-primary btn-md self-start"
         >
           <span className="material-symbols-outlined text-lg">add</span>
-          {activeTab === "resources" ? "Nuevo Recurso" : "Nueva Lección"}
+          {activeTab === "resources" ? t("newResource") : t("newLesson")}
         </button>
       </div>
 
@@ -402,16 +399,16 @@ export default function LibraryPage() {
         filteredResources.length === 0 ? (
           <EmptyState
             icon="folder_open"
-            title={searchQuery || typeFilter !== "ALL" ? "Sin resultados" : "Sin recursos"}
+            title={searchQuery || typeFilter !== "ALL" ? t("noResults") : t("noResources")}
             description={
               searchQuery || typeFilter !== "ALL"
-                ? "No se encontraron recursos con esos filtros."
-                : "Agrega recursos como videos, PDFs o enlaces para usarlos en tus lecciones."
+                ? t("noResourcesFiltered")
+                : t("noResourcesDescription")
             }
             action={
               !searchQuery && typeFilter === "ALL"
                 ? {
-                    label: "Agregar Recurso",
+                    label: t("addResource"),
                     onClick: () => setShowResourceModal(true),
                   }
                 : undefined
@@ -468,16 +465,16 @@ export default function LibraryPage() {
       ) : filteredLessons.length === 0 ? (
         <EmptyState
           icon="local_library"
-          title={searchQuery ? "Sin resultados" : "Sin lecciones"}
+          title={searchQuery ? t("noResults") : t("noLessons")}
           description={
             searchQuery
-              ? "No se encontraron lecciones con ese nombre."
-              : "Crea tu primera lección para organizar recursos y ejercicios."
+              ? t("noLessonsFiltered")
+              : t("noLessonsDescription")
           }
           action={
             !searchQuery
               ? {
-                  label: "Crear Lección",
+                  label: t("createLesson"),
                   onClick: () => setShowLessonModal(true),
                 }
               : undefined
@@ -499,7 +496,7 @@ export default function LibraryPage() {
 
                 {/* Exercise Count Badge */}
                 <span className="absolute bottom-2 right-2 px-2 py-0.5 text-xs font-semibold rounded bg-black/50 text-white">
-                  {lesson._count.exercises} ejercicios
+                  {t("exercisesCount", { count: lesson._count.exercises })}
                 </span>
 
                 {/* Delete Button */}
@@ -537,7 +534,7 @@ export default function LibraryPage() {
           <div className="w-full max-w-lg surface-card p-6">
             <div className="flex-between mb-6">
               <h2 className="text-heading text-xl">
-                {editingResource ? "Editar Recurso" : "Nuevo Recurso"}
+                {editingResource ? t("editResource") : t("newResource")}
               </h2>
               <button
                 onClick={closeResourceModal}
@@ -550,7 +547,7 @@ export default function LibraryPage() {
             <form onSubmit={handleSaveResource} className="space-y-4">
               {/* Type Selection */}
               <div>
-                <label className="form-label">Tipo de Recurso</label>
+                <label className="form-label">{t("resourceType")}</label>
                 <div className="grid grid-cols-4 gap-2 mt-2">
                   {(["VIDEO", "PDF", "URL", "TEXT"] as ResourceType[]).map(
                     (type) => (
@@ -579,7 +576,7 @@ export default function LibraryPage() {
               {/* Title */}
               <div>
                 <label htmlFor="resourceTitle" className="form-label">
-                  Título
+                  {t("titleLabel")}
                 </label>
                 <input
                   type="text"
@@ -589,7 +586,7 @@ export default function LibraryPage() {
                     setResourceForm({ ...resourceForm, title: e.target.value })
                   }
                   className="form-input mt-1"
-                  placeholder="Ej: Introducción a las fracciones"
+                  placeholder={t("titlePlaceholder")}
                   required
                   autoFocus
                 />
@@ -599,7 +596,7 @@ export default function LibraryPage() {
               {["VIDEO", "PDF", "URL"].includes(resourceForm.type) && (
                 <div>
                   <label htmlFor="resourceUrl" className="form-label">
-                    URL
+                    {t("urlLabel")}
                   </label>
                   <input
                     type="url"
@@ -609,7 +606,7 @@ export default function LibraryPage() {
                       setResourceForm({ ...resourceForm, url: e.target.value })
                     }
                     className="form-input mt-1"
-                    placeholder="https://"
+                    placeholder={t("urlPlaceholder")}
                     required
                   />
                 </div>
@@ -619,7 +616,7 @@ export default function LibraryPage() {
               {resourceForm.type === "TEXT" && (
                 <div>
                   <label htmlFor="resourceContent" className="form-label">
-                    Contenido
+                    {t("contentLabel")}
                   </label>
                   <textarea
                     id="resourceContent"
@@ -632,7 +629,7 @@ export default function LibraryPage() {
                     }
                     className="form-textarea mt-1"
                     rows={4}
-                    placeholder="Escribe el contenido aquí..."
+                    placeholder={t("contentPlaceholder")}
                     required
                   />
                 </div>
@@ -641,7 +638,7 @@ export default function LibraryPage() {
               {/* Duration */}
               <div>
                 <label htmlFor="resourceDuration" className="form-label">
-                  Duración (minutos, opcional)
+                  {t("durationLabel")}
                 </label>
                 <input
                   type="number"
@@ -654,7 +651,7 @@ export default function LibraryPage() {
                     })
                   }
                   className="form-input mt-1"
-                  placeholder="15"
+                  placeholder={t("durationPlaceholder")}
                   min="1"
                 />
               </div>
@@ -668,7 +665,7 @@ export default function LibraryPage() {
                     className="btn-danger btn-md"
                   >
                     <span className="material-symbols-outlined text-lg">delete</span>
-                    Eliminar
+                    {t("deleteButton")}
                   </button>
                 )}
                 <div className="flex-1" />
@@ -677,14 +674,14 @@ export default function LibraryPage() {
                   onClick={closeResourceModal}
                   className="btn-ghost btn-md"
                 >
-                  Cancelar
+                  {t("cancelButton")}
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
                   className="btn-primary btn-md"
                 >
-                  {submitting ? "Guardando..." : editingResource ? "Guardar" : "Crear Recurso"}
+                  {submitting ? t("savingButton") : editingResource ? t("saveButton") : t("createResourceButton")}
                 </button>
               </div>
             </form>
@@ -697,7 +694,7 @@ export default function LibraryPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="w-full max-w-md surface-card p-6">
             <div className="flex-between mb-6">
-              <h2 className="text-heading text-xl">Nueva Lección</h2>
+              <h2 className="text-heading text-xl">{t("newLesson")}</h2>
               <button
                 onClick={() => setShowLessonModal(false)}
                 className="p-1 rounded hover:bg-[var(--surface-hover)]"
@@ -709,7 +706,7 @@ export default function LibraryPage() {
             <form onSubmit={handleCreateLesson} className="space-y-4">
               <div>
                 <label htmlFor="lessonTitle" className="form-label">
-                  Nombre de la Lección
+                  {t("lessonNameLabel")}
                 </label>
                 <input
                   type="text"
@@ -717,7 +714,7 @@ export default function LibraryPage() {
                   value={lessonTitle}
                   onChange={(e) => setLessonTitle(e.target.value)}
                   className="form-input mt-1"
-                  placeholder="Ej: Matemáticas - Capítulo 4"
+                  placeholder={t("lessonNamePlaceholder")}
                   required
                   autoFocus
                 />
@@ -729,14 +726,14 @@ export default function LibraryPage() {
                   onClick={() => setShowLessonModal(false)}
                   className="btn-ghost btn-md"
                 >
-                  Cancelar
+                  {t("cancelButton")}
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
                   className="btn-primary btn-md"
                 >
-                  {submitting ? "Creando..." : "Crear y Editar"}
+                  {submitting ? t("creatingButton") : t("createAndEditButton")}
                 </button>
               </div>
             </form>
@@ -749,9 +746,11 @@ export default function LibraryPage() {
         isOpen={deleteModal.isOpen}
         onClose={() => setDeleteModal({ ...deleteModal, isOpen: false })}
         onConfirm={handleConfirmDelete}
-        title={`Eliminar ${deleteModal.type === "resource" ? "recurso" : "lección"}`}
-        message={`¿Estás seguro de eliminar "${deleteModal.title}"? Esta acción no se puede deshacer.`}
-        confirmText="Eliminar"
+        title={deleteModal.type === "resource" ? t("deleteResourceTitle") : t("deleteLessonTitle")}
+        message={deleteModal.type === "resource"
+          ? t("deleteResourceMessage", { title: deleteModal.title })
+          : t("deleteLessonMessage", { title: deleteModal.title })}
+        confirmText={t("confirmDeleteButton")}
         variant="danger"
       />
     </PageContainer>

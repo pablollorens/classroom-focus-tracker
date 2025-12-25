@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, Fragment, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { PageContainer } from "@/components/layout";
 import { Toast } from "@/components/Toast";
 import {
@@ -41,7 +42,7 @@ interface Group {
   name: string;
 }
 
-const DAYS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+const DAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
 const HOURS = Array.from({ length: 11 }, (_, i) => i + 8); // 8:00 - 18:00
 const CELL_HEIGHT = 80; // Height of each hour cell in pixels
 const SNAP_MINUTES = 5;
@@ -90,6 +91,7 @@ function DraggableCalendarEvent({
   colorClass: string;
   onEdit: (sc: ScheduledClass) => void;
 }) {
+  const t = useTranslations("calendar");
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `event-${sc.id}`,
     data: { type: "event", scheduledClass: sc },
@@ -113,13 +115,13 @@ function DraggableCalendarEvent({
       }}
     >
       <span className="text-white text-xs font-bold truncate">
-        {sc.group?.name || "Sin grupo"}
+        {sc.group?.name || t("event.noGroup")}
       </span>
       <span className="text-white/80 text-xs truncate">
-        {sc.preparedLesson?.title || "Sin lección"}
+        {sc.preparedLesson?.title || t("event.noLesson")}
       </span>
       <span className="text-white/60 text-[10px]">
-        {sc.startTime} - {sc.duration}min
+        {sc.startTime} - {t("event.minutes", { duration: sc.duration })}
       </span>
     </div>
   );
@@ -237,6 +239,7 @@ function DroppableCalendarCell({
 }
 
 export default function CalendarPage() {
+  const t = useTranslations("calendar");
   const router = useRouter();
   const calendarRef = useRef<HTMLDivElement>(null);
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
@@ -582,13 +585,13 @@ export default function CalendarPage() {
         router.push(`/dashboard/sessions/${data.sessionId}`);
       } else {
         const errorData = await res.json();
-        setToastMessage(errorData.error || "Error al iniciar la sesión");
+        setToastMessage(errorData.error || t("errors.startSessionError"));
         setToastType("error");
         setShowToast(true);
       }
     } catch (error) {
       console.error("Error starting session:", error);
-      setToastMessage("Error al iniciar la sesión");
+      setToastMessage(t("errors.startSessionError"));
       setToastType("error");
       setShowToast(true);
     }
@@ -641,7 +644,7 @@ export default function CalendarPage() {
         <div className="flex-center h-64">
           <div className="flex flex-col items-center gap-3">
             <div className="size-8 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
-            <span className="text-body">Cargando calendario...</span>
+            <span className="text-body">{t("loading")}</span>
           </div>
         </div>
       </PageContainer>
@@ -659,9 +662,9 @@ export default function CalendarPage() {
       <PageContainer>
         {/* Page Title */}
         <section>
-          <h1 className="text-heading-xl mb-2">Horario</h1>
+          <h1 className="text-heading-xl mb-2">{t("title")}</h1>
           <p className="text-body">
-            Arrastra las lecciones al calendario para programarlas.
+            {t("subtitle")}
           </p>
         </section>
 
@@ -699,7 +702,7 @@ export default function CalendarPage() {
               onClick={goToToday}
               className="btn-secondary btn-sm"
             >
-              Hoy
+              {t("today")}
             </button>
           </div>
 
@@ -733,7 +736,7 @@ export default function CalendarPage() {
                           : "calendar-day-header"
                       }
                     >
-                      <p className="text-caption">{DAYS[date.getDay()]}</p>
+                      <p className="text-caption">{t(`days.${DAY_KEYS[date.getDay()]}`)}</p>
                       <p
                         className={`text-heading text-lg ${
                           isToday ? "text-[var(--color-primary)]" : ""
@@ -783,13 +786,13 @@ export default function CalendarPage() {
 
             {/* Groups Sidebar */}
             <div className="w-72 border-l border-[var(--border-default)] bg-[var(--surface-darker)] p-4 overflow-y-auto custom-scrollbar hidden lg:block">
-              <h2 className="text-heading text-sm mb-2">Grupos</h2>
+              <h2 className="text-heading text-sm mb-2">{t("groups.title")}</h2>
               <p className="text-caption text-xs mb-4">
-                Arrastra un grupo al calendario
+                {t("groups.dragGroup")}
               </p>
               {groups.length === 0 ? (
                 <p className="text-caption text-center py-8">
-                  No hay grupos creados
+                  {t("groups.noGroups")}
                 </p>
               ) : (
                 <div className="flex flex-col gap-2">
@@ -821,10 +824,10 @@ export default function CalendarPage() {
               style={{ width: "140px", height: `${(draggingEvent.duration / 60) * CELL_HEIGHT - 4}px`, position: "relative" }}
             >
               <span className="text-white text-xs font-bold truncate">
-                {draggingEvent.group?.name || "Sin grupo"}
+                {draggingEvent.group?.name || t("event.noGroup")}
               </span>
               <span className="text-white/80 text-xs truncate">
-                {draggingEvent.preparedLesson?.title || "Sin lección"}
+                {draggingEvent.preparedLesson?.title || t("event.noLesson")}
               </span>
             </div>
           )}
@@ -836,9 +839,9 @@ export default function CalendarPage() {
             <div className="surface-card w-full max-w-md p-6 m-4">
               <div className="flex-between mb-6">
                 <div>
-                  <h2 className="text-heading text-lg">Editar Clase</h2>
+                  <h2 className="text-heading text-lg">{t("editModal.title")}</h2>
                   <p className="text-caption text-sm mt-1">
-                    {editingClass.group?.name || "Sin grupo"}
+                    {editingClass.group?.name || t("event.noGroup")}
                   </p>
                 </div>
                 <button
@@ -854,7 +857,7 @@ export default function CalendarPage() {
 
               <form onSubmit={handleSaveClass} className="flex flex-col gap-4">
                 <div className="form-group">
-                  <label className="form-label">Lección</label>
+                  <label className="form-label">{t("editModal.lesson")}</label>
                   <select
                     value={formData.preparedLessonId}
                     onChange={(e) =>
@@ -862,7 +865,7 @@ export default function CalendarPage() {
                     }
                     className="form-select"
                   >
-                    <option value="">Seleccionar lección...</option>
+                    <option value="">{t("editModal.selectLesson")}</option>
                     {lessons.map((l) => (
                       <option key={l.id} value={l.id}>
                         {l.title}
@@ -872,7 +875,7 @@ export default function CalendarPage() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Hora de inicio</label>
+                  <label className="form-label">{t("editModal.startTime")}</label>
                   <input
                     type="time"
                     value={formData.startTime}
@@ -885,7 +888,7 @@ export default function CalendarPage() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Duración (minutos)</label>
+                  <label className="form-label">{t("editModal.duration")}</label>
                   <select
                     value={formData.duration}
                     onChange={(e) =>
@@ -893,19 +896,19 @@ export default function CalendarPage() {
                     }
                     className="form-select"
                   >
-                    <option value={15}>15 minutos</option>
-                    <option value={20}>20 minutos</option>
-                    <option value={25}>25 minutos</option>
-                    <option value={30}>30 minutos</option>
-                    <option value={45}>45 minutos</option>
-                    <option value={60}>1 hora</option>
-                    <option value={90}>1.5 horas</option>
-                    <option value={120}>2 horas</option>
+                    <option value={15}>{t("durationOptions.15min")}</option>
+                    <option value={20}>{t("durationOptions.20min")}</option>
+                    <option value={25}>{t("durationOptions.25min")}</option>
+                    <option value={30}>{t("durationOptions.30min")}</option>
+                    <option value={45}>{t("durationOptions.45min")}</option>
+                    <option value={60}>{t("durationOptions.1hour")}</option>
+                    <option value={90}>{t("durationOptions.1.5hours")}</option>
+                    <option value={120}>{t("durationOptions.2hours")}</option>
                   </select>
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Notas (opcional)</label>
+                  <label className="form-label">{t("editModal.notes")}</label>
                   <textarea
                     value={formData.notes}
                     onChange={(e) =>
@@ -913,7 +916,7 @@ export default function CalendarPage() {
                     }
                     className="form-textarea"
                     rows={2}
-                    placeholder="Notas para esta clase..."
+                    placeholder={t("editModal.notesPlaceholder")}
                   />
                 </div>
 
@@ -924,7 +927,7 @@ export default function CalendarPage() {
                     className="btn-danger btn-md"
                   >
                     <span className="material-symbols-outlined text-base">delete</span>
-                    Eliminar
+                    {t("editModal.delete")}
                   </button>
                   <div className="flex-1" />
                   <button
@@ -935,10 +938,10 @@ export default function CalendarPage() {
                     }}
                     className="btn-secondary btn-md"
                   >
-                    Cancelar
+                    {t("editModal.cancel")}
                   </button>
                   <button type="submit" className="btn-primary btn-md">
-                    Guardar
+                    {t("editModal.save")}
                   </button>
                 </div>
 
@@ -950,15 +953,15 @@ export default function CalendarPage() {
                     className="btn-primary btn-md w-full mt-2"
                   >
                     <span className="material-symbols-outlined text-base">play_arrow</span>
-                    Iniciar Sesión
+                    {t("editModal.startSession")}
                   </button>
                 ) : (
                   <p className="text-caption text-center text-sm mt-2">
                     {!editingClass.group && !editingClass.preparedLesson
-                      ? "Asigna un grupo y una lección para iniciar"
+                      ? t("errors.needGroupAndLesson")
                       : !editingClass.preparedLesson
-                      ? "Asigna una lección para poder iniciar la sesión"
-                      : "Asigna un grupo para poder iniciar la sesión"}
+                      ? t("errors.needLesson")
+                      : t("errors.needGroup")}
                   </p>
                 )}
               </form>
