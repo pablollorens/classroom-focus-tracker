@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { PageContainer } from "@/components/layout";
 import { StatusBadge, EmptyState } from "@/components/common";
 import { LiveSessionIllustration } from "@/components/illustrations";
@@ -26,6 +27,9 @@ interface Group {
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const t = useTranslations("dashboard");
+  const tc = useTranslations("common");
+  const ts = useTranslations("sidebar");
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
@@ -92,7 +96,7 @@ export default function DashboardPage() {
         <div className="flex-center h-64">
           <div className="flex flex-col items-center gap-3">
             <div className="size-8 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
-            <span className="text-body">Cargando...</span>
+            <span className="text-body">{tc("loading")}</span>
           </div>
         </div>
       </PageContainer>
@@ -104,10 +108,10 @@ export default function DashboardPage() {
       {/* Welcome Section */}
       <section>
         <h1 className="text-heading-xl mb-2">
-          Hola, {session?.user?.email?.split("@")[0]}
+          {t("welcome", { name: session?.user?.email?.split("@")[0] ?? "" })}
         </h1>
         <p className="text-body">
-          Gestiona tus clases y monitorea el progreso de tus estudiantes.
+          {t("subtitle")}
         </p>
       </section>
 
@@ -119,7 +123,7 @@ export default function DashboardPage() {
               <span className="material-symbols-outlined text-red-500 filled">
                 sensors
               </span>
-              En Vivo Ahora
+              {t("liveNow")}
             </h2>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -150,10 +154,10 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex-between mt-4">
                       <span className="text-caption">
-                        {group._count.students} estudiantes
+                        {t("students", { count: group._count.students })}
                       </span>
                       <span className="btn-primary btn-sm">
-                        Ver Sesión
+                        {t("viewSession")}
                         <span className="material-symbols-outlined text-lg">
                           arrow_forward
                         </span>
@@ -170,13 +174,13 @@ export default function DashboardPage() {
       {/* My Classes */}
       <section>
         <div className="flex-between mb-4">
-          <h2 className="text-heading text-xl">Mis Clases</h2>
+          <h2 className="text-heading text-xl">{t("myClasses")}</h2>
           <button
             onClick={() => setIsCreating(true)}
             className="btn-primary btn-sm"
           >
             <span className="material-symbols-outlined text-lg">add</span>
-            Nuevo Grupo
+            {t("newGroup")}
           </button>
         </div>
 
@@ -186,7 +190,7 @@ export default function DashboardPage() {
             <form onSubmit={handleCreateGroup} className="flex gap-4 items-end">
               <div className="flex-1">
                 <label htmlFor="name" className="form-label">
-                  Nombre del Grupo
+                  {t("groupName")}
                 </label>
                 <input
                   type="text"
@@ -194,7 +198,7 @@ export default function DashboardPage() {
                   value={newGroupName}
                   onChange={(e) => setNewGroupName(e.target.value)}
                   className="form-input mt-1"
-                  placeholder="Ej: Matemáticas 101"
+                  placeholder={t("groupNamePlaceholder")}
                   autoFocus
                 />
               </div>
@@ -204,14 +208,14 @@ export default function DashboardPage() {
                   onClick={() => setIsCreating(false)}
                   className="btn-ghost btn-md"
                 >
-                  Cancelar
+                  {tc("cancel")}
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
                   className="btn-primary btn-md"
                 >
-                  {submitting ? "Guardando..." : "Guardar"}
+                  {submitting ? tc("saving") : tc("save")}
                 </button>
               </div>
             </form>
@@ -222,10 +226,10 @@ export default function DashboardPage() {
         {groups.length === 0 ? (
           <EmptyState
             icon="groups"
-            title="Sin grupos"
-            description="Crea tu primer grupo de clase para comenzar a monitorear a tus estudiantes."
+            title={t("noGroups")}
+            description={t("noGroupsDescription")}
             action={{
-              label: "Crear Grupo",
+              label: t("createGroup"),
               onClick: () => setIsCreating(true),
             }}
           />
@@ -247,7 +251,7 @@ export default function DashboardPage() {
                 <div className="flex-stack gap-1">
                   <h3 className="text-heading text-base">{group.name}</h3>
                   <p className="text-caption">
-                    {group._count.students} estudiantes
+                    {t("students", { count: group._count.students })}
                   </p>
                 </div>
               </Link>
@@ -258,7 +262,7 @@ export default function DashboardPage() {
 
       {/* Quick Links */}
       <section>
-        <h2 className="text-heading text-xl mb-4">Accesos Rápidos</h2>
+        <h2 className="text-heading text-xl mb-4">{t("quickLinks")}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <Link href="/dashboard/lessons" className="surface-card-interactive p-5 flex items-center gap-4">
             <div className="icon-container-lg icon-primary">
@@ -267,8 +271,8 @@ export default function DashboardPage() {
               </span>
             </div>
             <div>
-              <h3 className="text-heading text-base">Biblioteca</h3>
-              <p className="text-caption">Gestiona recursos y lecciones</p>
+              <h3 className="text-heading text-base">{ts("library")}</h3>
+              <p className="text-caption">{t("libraryDescription")}</p>
             </div>
           </Link>
           <Link href="/dashboard/calendar" className="surface-card-interactive p-5 flex items-center gap-4">
@@ -278,8 +282,8 @@ export default function DashboardPage() {
               </span>
             </div>
             <div>
-              <h3 className="text-heading text-base">Horario</h3>
-              <p className="text-caption">Programa tus clases</p>
+              <h3 className="text-heading text-base">{ts("schedule")}</h3>
+              <p className="text-caption">{t("scheduleDescription")}</p>
             </div>
           </Link>
           <Link href="/dashboard/reports" className="surface-card-interactive p-5 flex items-center gap-4 opacity-50 pointer-events-none">
@@ -289,8 +293,8 @@ export default function DashboardPage() {
               </span>
             </div>
             <div>
-              <h3 className="text-heading text-base">Reportes</h3>
-              <p className="text-caption">Próximamente</p>
+              <h3 className="text-heading text-base">{ts("reports")}</h3>
+              <p className="text-caption">{t("reportsDescription")}</p>
             </div>
           </Link>
         </div>
