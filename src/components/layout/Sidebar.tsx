@@ -2,22 +2,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 interface NavItem {
   href: string;
-  label: string;
+  labelKey: string;
   icon: string;
 }
 
 const navItems: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
-  { href: "/dashboard/lessons", label: "Biblioteca", icon: "local_library" },
-  { href: "/dashboard/calendar", label: "Horario", icon: "calendar_month" },
-  { href: "/dashboard/reports", label: "Reportes", icon: "bar_chart" },
+  { href: "/dashboard", labelKey: "dashboard", icon: "dashboard" },
+  { href: "/dashboard/lessons", labelKey: "library", icon: "local_library" },
+  { href: "/dashboard/calendar", labelKey: "schedule", icon: "calendar_month" },
+  { href: "/dashboard/reports", labelKey: "reports", icon: "bar_chart" },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
+  const t = useTranslations("sidebar");
 
   const isActive = (href: string) => {
     if (href === "/dashboard") {
@@ -72,7 +74,7 @@ export function Sidebar() {
                     : "sidebar-nav-label"
                 }
               >
-                {item.label}
+                {t(item.labelKey)}
               </span>
             </Link>
           ))}
