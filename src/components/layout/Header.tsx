@@ -2,6 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { SignOutButton } from "@/components/SignOutButton";
+import { LanguageSelector } from "@/components/LanguageSelector";
 
 interface HeaderProps {
   title?: string;
@@ -36,6 +37,9 @@ export function Header({ title, subtitle }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-4">
+        {/* Language Selector */}
+        <LanguageSelector />
+
         {/* User info */}
         <div className="hidden sm:flex items-center gap-3">
           <div className="flex flex-col items-end">
