@@ -3,10 +3,12 @@
 import { useState, useEffect } from "react";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 type Role = "student" | "teacher";
 
 export default function Home() {
+  const t = useTranslations("landing");
   const router = useRouter();
   const { data: session, status } = useSession();
   const [role, setRole] = useState<Role>("student");
@@ -47,7 +49,7 @@ export default function Home() {
     });
 
     if (result?.error) {
-      setError("Credenciales incorrectas");
+      setError(t("invalidCredentials"));
       setLoading(false);
     } else {
       // Store remember me preference
@@ -80,10 +82,10 @@ export default function Home() {
         localStorage.setItem("studentSession", JSON.stringify(data));
         router.push("/class/session");
       } else {
-        setError(data.error || "Error al unirse a la sesión");
+        setError(data.error || t("errorJoiningSession"));
       }
     } catch {
-      setError("Error de conexión");
+      setError(t("connectionError"));
     } finally {
       setLoading(false);
     }
@@ -131,16 +133,14 @@ export default function Home() {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#137fec] opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-[#137fec]"></span>
                 </span>
-                Monitoreo en tiempo real
+                {t("realtimeMonitoring")}
               </span>
               <h1 className="text-4xl lg:text-5xl font-extrabold leading-tight tracking-tight text-slate-900 dark:text-white">
-                Gestión educativa simplificada e{" "}
-                <span className="text-[#137fec]">inteligente</span>.
+                {t("heroTitle")}{" "}
+                <span className="text-[#137fec]">{t("heroTitleHighlight")}</span>{t("heroTitleEnd")}
               </h1>
               <p className="text-slate-500 dark:text-[#9dabb9] text-lg leading-relaxed">
-                Conecta profesores y estudiantes en un entorno digital fluido.
-                Accede a herramientas de seguimiento, asistencia y
-                calificaciones desde cualquier lugar.
+                {t("heroDescription")}
               </p>
             </div>
           </div>
@@ -150,10 +150,10 @@ export default function Home() {
             <div className="bg-white dark:bg-[#1c252e] rounded-2xl shadow-xl dark:shadow-none border border-slate-200 dark:border-[#2c3642] overflow-hidden">
               <div className="p-8 pb-4">
                 <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-                  Bienvenido de nuevo
+                  {t("welcomeBack")}
                 </h2>
                 <p className="text-slate-500 dark:text-[#9dabb9]">
-                  Selecciona tu perfil para continuar
+                  {t("selectProfile")}
                 </p>
               </div>
 
@@ -176,7 +176,7 @@ export default function Home() {
                       <span className="material-symbols-outlined">school</span>
                     </div>
                     <span className="font-bold text-sm text-slate-600 dark:text-slate-300 peer-checked:text-[#137fec]">
-                      Estudiante
+                      {t("student")}
                     </span>
                   </div>
                 </label>
@@ -199,7 +199,7 @@ export default function Home() {
                       </span>
                     </div>
                     <span className="font-bold text-sm text-slate-600 dark:text-slate-300 peer-checked:text-[#137fec]">
-                      Profesor
+                      {t("teacher")}
                     </span>
                   </div>
                 </label>
@@ -228,7 +228,7 @@ export default function Home() {
                         className="text-sm font-semibold text-slate-700 dark:text-slate-300"
                         htmlFor="email"
                       >
-                        Correo Institucional
+                        {t("institutionalEmail")}
                       </label>
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
@@ -242,7 +242,7 @@ export default function Home() {
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           className="block w-full rounded-lg border-slate-200 dark:border-[#36414e] bg-slate-50 dark:bg-[#111418] text-slate-900 dark:text-white pl-10 pr-4 py-3 text-sm focus:border-[#137fec] focus:ring-1 focus:ring-[#137fec] placeholder:text-slate-400 dark:placeholder:text-[#5f6e7c] outline-none transition-all"
-                          placeholder="nombre@institucion.edu"
+                          placeholder={t("emailPlaceholder")}
                           required
                         />
                       </div>
@@ -253,13 +253,13 @@ export default function Home() {
                           className="text-sm font-semibold text-slate-700 dark:text-slate-300"
                           htmlFor="password"
                         >
-                          Contraseña
+                          {t("password")}
                         </label>
                         <a
                           href="#"
                           className="text-xs font-medium text-[#137fec] hover:text-blue-400"
                         >
-                          ¿Olvidaste tu contraseña?
+                          {t("forgotPassword")}
                         </a>
                       </div>
                       <div className="relative">
@@ -291,7 +291,7 @@ export default function Home() {
                         htmlFor="remember-me"
                         className="ml-2 block text-sm text-slate-600 dark:text-slate-400"
                       >
-                        Recordar sesión
+                        {t("rememberSession")}
                       </label>
                     </div>
                   </>
@@ -305,7 +305,7 @@ export default function Home() {
                         className="text-sm font-semibold text-slate-700 dark:text-slate-300"
                         htmlFor="username"
                       >
-                        Usuario
+                        {t("username")}
                       </label>
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
@@ -319,7 +319,7 @@ export default function Home() {
                           value={username}
                           onChange={(e) => setUsername(e.target.value)}
                           className="block w-full rounded-lg border-slate-200 dark:border-[#36414e] bg-slate-50 dark:bg-[#111418] text-slate-900 dark:text-white pl-10 pr-4 py-3 text-sm focus:border-[#137fec] focus:ring-1 focus:ring-[#137fec] placeholder:text-slate-400 dark:placeholder:text-[#5f6e7c] outline-none transition-all"
-                          placeholder="nombre.apellido"
+                          placeholder={t("usernamePlaceholder")}
                           required
                         />
                       </div>
@@ -329,7 +329,7 @@ export default function Home() {
                         className="text-sm font-semibold text-slate-700 dark:text-slate-300"
                         htmlFor="sessionCode"
                       >
-                        Código de Sesión
+                        {t("sessionCode")}
                       </label>
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
@@ -344,12 +344,12 @@ export default function Home() {
                           onChange={(e) => setSessionCode(e.target.value)}
                           maxLength={6}
                           className="block w-full rounded-lg border-slate-200 dark:border-[#36414e] bg-slate-50 dark:bg-[#111418] text-slate-900 dark:text-white pl-10 pr-4 py-3 text-sm font-mono tracking-widest focus:border-[#137fec] focus:ring-1 focus:ring-[#137fec] placeholder:text-slate-400 dark:placeholder:text-[#5f6e7c] outline-none transition-all"
-                          placeholder="abc123"
+                          placeholder={t("sessionCodePlaceholder")}
                           required
                         />
                       </div>
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                        Solicita el código a tu profesor
+                        {t("askTeacherForCode")}
                       </p>
                     </div>
                   </>
@@ -363,12 +363,12 @@ export default function Home() {
                   {loading ? (
                     <>
                       <div className="size-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                      <span className="truncate">Procesando...</span>
+                      <span className="truncate">{t("processing")}</span>
                     </>
                   ) : (
                     <>
                       <span className="truncate">
-                        {role === "student" ? "Unirse a la Clase" : "Ingresar al Portal"}
+                        {role === "student" ? t("joinClass") : t("enterPortal")}
                       </span>
                       <span className="material-symbols-outlined ml-2 text-sm">
                         arrow_forward
@@ -386,8 +386,7 @@ export default function Home() {
       <footer className="w-full py-6 px-10 text-center border-t border-slate-200 dark:border-[#283039] bg-white dark:bg-[#111418]">
         <div className="flex flex-col md:flex-row justify-between items-center max-w-7xl mx-auto gap-4">
           <p className="text-sm text-slate-500 dark:text-[#9dabb9]">
-            &copy; {new Date().getFullYear()} Classroom Focus Tracker. Todos los
-            derechos reservados.
+            &copy; {new Date().getFullYear()} Classroom Focus Tracker. {t("allRightsReserved")}
           </p>
         </div>
       </footer>

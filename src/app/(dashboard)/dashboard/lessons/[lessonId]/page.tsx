@@ -3,6 +3,7 @@
 import { use, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { PageContainer } from "@/components/layout";
 import { ResourceIcon, EmptyState, ConfirmModal } from "@/components/common";
 import {
@@ -201,6 +202,7 @@ export default function LessonEditorPage({
 }: {
   params: Promise<{ lessonId: string }>;
 }) {
+  const t = useTranslations("lessonEditor");
   const { lessonId } = use(params);
   const router = useRouter();
   const [lesson, setLesson] = useState<Lesson | null>(null);
@@ -255,7 +257,7 @@ export default function LessonEditorPage({
 
     // Debounce
     const timer = setTimeout(async () => {
-      setUrlValidation({ status: "checking", message: "Verificando URL..." });
+      setUrlValidation({ status: "checking", message: t("checkingUrl") });
 
       try {
         const res = await fetch("/api/check-embed", {
@@ -271,13 +273,13 @@ export default function LessonEditorPage({
           } else if (data.allowed === false) {
             setUrlValidation({ status: "blocked", message: data.reason });
           } else {
-            setUrlValidation({ status: "unknown", message: data.reason || "No se pudo verificar" });
+            setUrlValidation({ status: "unknown", message: data.reason || t("couldNotVerify") });
           }
         } else {
-          setUrlValidation({ status: "unknown", message: "Error al verificar" });
+          setUrlValidation({ status: "unknown", message: t("verifyError") });
         }
       } catch {
-        setUrlValidation({ status: "unknown", message: "Error de conexión" });
+        setUrlValidation({ status: "unknown", message: t("connectionError") });
       }
     }, 500);
 
@@ -476,7 +478,7 @@ export default function LessonEditorPage({
         <div className="flex-center h-64">
           <div className="flex flex-col items-center gap-3">
             <div className="size-8 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
-            <span className="text-body">Cargando lección...</span>
+            <span className="text-body">{t("loading")}</span>
           </div>
         </div>
       </PageContainer>
@@ -488,10 +490,10 @@ export default function LessonEditorPage({
       <PageContainer>
         <EmptyState
           icon="error"
-          title="Lección no encontrada"
-          description="La lección que buscas no existe o fue eliminada."
+          title={t("notFound")}
+          description={t("notFoundDescription")}
           action={{
-            label: "Volver a Biblioteca",
+            label: t("backToLibrary"),
             onClick: () => router.push("/dashboard/lessons"),
           }}
         />
@@ -523,7 +525,7 @@ export default function LessonEditorPage({
                 href="/dashboard/lessons?tab=lessons"
                 className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"
               >
-                Lecciones
+                {t("breadcrumbLessons")}
               </Link>
               <span className="text-[var(--text-muted)]">/</span>
               <span className="text-[var(--text-primary)] font-medium">
@@ -536,7 +538,9 @@ export default function LessonEditorPage({
               <div>
                 <h1 className="text-heading-xl">{lesson.title}</h1>
                 <p className="text-body mt-1">
-                  {lesson.exercises.length} ejercicios
+                  {lesson.exercises.length === 1
+                    ? t("exercisesCountSingular", { count: lesson.exercises.length })
+                    : t("exercisesCount", { count: lesson.exercises.length })}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -548,7 +552,7 @@ export default function LessonEditorPage({
                   <span className="material-symbols-outlined text-lg">
                     library_add
                   </span>
-                  Recursos
+                  {t("resources")}
                 </button>
                 <button onClick={openDeleteLessonModal} className="btn-ghost btn-sm text-red-400 hover:text-red-300">
                   <span className="material-symbols-outlined text-lg">delete</span>
@@ -561,10 +565,10 @@ export default function LessonEditorPage({
               {lesson.exercises.length === 0 ? (
                 <EmptyState
                   icon="playlist_add"
-                  title="Sin ejercicios"
-                  description="Arrastra recursos desde la biblioteca o haz clic en ellos para añadirlos."
+                  title={t("noExercises")}
+                  description={t("noExercisesDescription")}
                   action={{
-                    label: "Añadir Ejercicio Manual",
+                    label: t("addManualExercise"),
                     onClick: () => setShowAddForm(true),
                   }}
                 />
@@ -593,7 +597,7 @@ export default function LessonEditorPage({
               className="w-full p-4 border-2 border-dashed border-[var(--border-default)] rounded-lg text-[var(--text-muted)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-colors flex-center gap-2"
             >
               <span className="material-symbols-outlined">add</span>
-              Añadir Ejercicio Manual
+              {t("addManualExercise")}
             </button>
           </div>
         </div>
@@ -610,7 +614,7 @@ export default function LessonEditorPage({
         <div className="h-full flex flex-col">
           {/* Sidebar Header */}
           <div className="p-4 border-b border-[var(--border-default)] flex-between">
-            <h2 className="text-heading text-lg">Biblioteca</h2>
+            <h2 className="text-heading text-lg">{t("library")}</h2>
             <button
               onClick={() => setShowSidebar(false)}
               className="lg:hidden p-1 hover:bg-[var(--surface-hover)] rounded"
@@ -627,7 +631,7 @@ export default function LessonEditorPage({
               </span>
               <input
                 type="text"
-                placeholder="Buscar recursos..."
+                placeholder={t("searchResources")}
                 value={resourceSearch}
                 onChange={(e) => setResourceSearch(e.target.value)}
                 className="form-search-input"
@@ -644,14 +648,14 @@ export default function LessonEditorPage({
                 </span>
                 <p className="text-caption">
                   {resourceSearch
-                    ? "Sin resultados"
-                    : "Todos los recursos ya fueron añadidos"}
+                    ? t("noResults")
+                    : t("allResourcesAdded")}
                 </p>
                 <Link
                   href="/dashboard/lessons?tab=resources"
                   className="text-sm text-[var(--color-primary)] hover:underline mt-2 inline-block"
                 >
-                  Crear nuevo recurso
+                  {t("createNewResource")}
                 </Link>
               </div>
             ) : (
@@ -680,7 +684,7 @@ export default function LessonEditorPage({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="w-full max-w-md surface-card p-6">
             <div className="flex-between mb-6">
-              <h2 className="text-heading text-xl">Añadir Ejercicio</h2>
+              <h2 className="text-heading text-xl">{t("addExercise")}</h2>
               <button
                 onClick={() => setShowAddForm(false)}
                 className="p-1 rounded hover:bg-[var(--surface-hover)]"
@@ -692,7 +696,7 @@ export default function LessonEditorPage({
             <form onSubmit={handleAddManual} className="space-y-4">
               <div>
                 <label htmlFor="exerciseTitle" className="form-label">
-                  Título
+                  {t("titleLabel")}
                 </label>
                 <input
                   type="text"
@@ -700,7 +704,7 @@ export default function LessonEditorPage({
                   value={manualTitle}
                   onChange={(e) => setManualTitle(e.target.value)}
                   className="form-input mt-1"
-                  placeholder="Ej: Lectura sobre fracciones"
+                  placeholder={t("titlePlaceholder")}
                   required
                   autoFocus
                 />
@@ -708,7 +712,7 @@ export default function LessonEditorPage({
 
               <div>
                 <label htmlFor="exerciseUrl" className="form-label">
-                  URL del contenido
+                  {t("urlLabel")}
                 </label>
                 <input
                   type="url"
@@ -747,7 +751,7 @@ export default function LessonEditorPage({
                 )}
                 {urlValidation.status === "blocked" && (
                   <p className="mt-1 text-xs text-[var(--text-muted)]">
-                    Sitios recomendados: YouTube, Vimeo, Google Docs, Quizlet, Kahoot
+                    {t("recommendedSites")}
                   </p>
                 )}
               </div>
@@ -763,14 +767,14 @@ export default function LessonEditorPage({
                   }}
                   className="btn-ghost btn-md"
                 >
-                  Cancelar
+                  {t("cancel")}
                 </button>
                 <button
                   type="submit"
                   disabled={submitting || urlValidation.status === "blocked" || urlValidation.status === "checking"}
                   className="btn-primary btn-md"
                 >
-                  {submitting ? "Añadiendo..." : "Añadir"}
+                  {submitting ? t("adding") : t("add")}
                 </button>
               </div>
             </form>
@@ -812,13 +816,13 @@ export default function LessonEditorPage({
         isOpen={deleteModal.isOpen}
         onClose={() => setDeleteModal({ ...deleteModal, isOpen: false })}
         onConfirm={handleConfirmDelete}
-        title={deleteModal.type === "exercise" ? "Eliminar ejercicio" : "Eliminar lección"}
+        title={deleteModal.type === "exercise" ? t("deleteExerciseTitle") : t("deleteLessonTitle")}
         message={
           deleteModal.type === "exercise"
-            ? `¿Estás seguro de eliminar "${deleteModal.exerciseTitle}" de esta lección?`
-            : `¿Estás seguro de eliminar "${lesson?.title}" y todos sus ejercicios? Esta acción no se puede deshacer.`
+            ? t("deleteExerciseMessage", { title: deleteModal.exerciseTitle || "" })
+            : t("deleteLessonMessage", { title: lesson?.title || "" })
         }
-        confirmText="Eliminar"
+        confirmText={t("delete")}
         variant="danger"
       />
     </div>

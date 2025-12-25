@@ -3,6 +3,7 @@
 import { useState, useEffect, use, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { PageContainer } from "@/components/layout";
 import { DistractionTimer } from "@/components/DistractionTimer";
 import { Toast } from "@/components/Toast";
@@ -43,6 +44,7 @@ export default function TeacherSessionPage({
 }: {
   params: Promise<{ sessionId: string }>;
 }) {
+  const t = useTranslations("session");
   const { sessionId } = use(params);
   const router = useRouter();
   const [session, setSession] = useState<SessionDetails | null>(null);
@@ -63,7 +65,7 @@ export default function TeacherSessionPage({
   const handleCopyPassword = () => {
     if (session) {
       navigator.clipboard.writeText(session.password);
-      setToastMessage("Código copiado");
+      setToastMessage(t("codeCopied"));
       setShowToast(true);
     }
   };
@@ -139,7 +141,7 @@ export default function TeacherSessionPage({
       await fetch(`/api/sessions/${sessionId}`, { method: "DELETE" });
       router.push("/dashboard");
     } catch {
-      setToastMessage("Error al terminar sesión");
+      setToastMessage(t("errorEndingSession"));
       setShowToast(true);
     }
     setShowEndSessionModal(false);
@@ -239,7 +241,7 @@ export default function TeacherSessionPage({
         <div className="flex-center h-64">
           <div className="flex flex-col items-center gap-3">
             <div className="size-8 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
-            <span className="text-body">Cargando sesión...</span>
+            <span className="text-body">{t("loading")}</span>
           </div>
         </div>
       </PageContainer>
@@ -253,9 +255,9 @@ export default function TeacherSessionPage({
           <span className="material-symbols-outlined text-6xl text-[var(--text-muted)]">
             error
           </span>
-          <h2 className="text-heading text-xl">Sesión no encontrada</h2>
+          <h2 className="text-heading text-xl">{t("notFound")}</h2>
           <Link href="/dashboard" className="btn-primary btn-md">
-            Volver al Dashboard
+            {t("backToDashboard")}
           </Link>
         </div>
       </PageContainer>
@@ -273,18 +275,18 @@ export default function TeacherSessionPage({
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
               </span>
-              En Vivo
+              {t("live")}
             </span>
             <span className="text-caption">•</span>
             <span className="text-caption">{session.group?.name}</span>
           </div>
           <h1 className="text-heading-xl">
-            {session.preparedLesson?.title || "Sesión en Vivo"}
+            {session.preparedLesson?.title || t("liveSession")}
           </h1>
         </div>
         <div className="flex items-center gap-3">
           <div className="text-right">
-            <p className="text-caption text-xs">Código de acceso</p>
+            <p className="text-caption text-xs">{t("accessCode")}</p>
             <button
               onClick={handleCopyPassword}
               className="text-2xl font-bold font-mono text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] flex items-center gap-1"
@@ -297,7 +299,7 @@ export default function TeacherSessionPage({
           </div>
           <button onClick={() => setShowEndSessionModal(true)} className="btn-danger btn-md">
             <span className="material-symbols-outlined text-lg">stop</span>
-            <span className="hidden sm:inline">Terminar</span>
+            <span className="hidden sm:inline">{t("end")}</span>
           </button>
         </div>
       </section>
@@ -313,7 +315,7 @@ export default function TeacherSessionPage({
             <p className="text-2xl font-bold font-mono text-[var(--text-primary)]">
               {sessionDuration}
             </p>
-            <p className="text-caption text-xs">Duración</p>
+            <p className="text-caption text-xs">{t("duration")}</p>
           </div>
         </div>
 
@@ -331,7 +333,7 @@ export default function TeacherSessionPage({
           </div>
           <div className="text-left">
             <p className="text-2xl font-bold text-green-400">{stats.active}</p>
-            <p className="text-caption text-xs">Activos</p>
+            <p className="text-caption text-xs">{t("activePlural")}</p>
           </div>
         </button>
 
@@ -349,7 +351,7 @@ export default function TeacherSessionPage({
           </div>
           <div className="text-left">
             <p className="text-2xl font-bold text-red-400">{stats.distracted}</p>
-            <p className="text-caption text-xs">Distraídos</p>
+            <p className="text-caption text-xs">{t("distractedPlural")}</p>
           </div>
         </button>
 
@@ -367,7 +369,7 @@ export default function TeacherSessionPage({
           </div>
           <div className="text-left">
             <p className="text-2xl font-bold text-yellow-400">{stats.idle}</p>
-            <p className="text-caption text-xs">Inactivos</p>
+            <p className="text-caption text-xs">{t("idlePlural")}</p>
           </div>
         </button>
 
@@ -385,7 +387,7 @@ export default function TeacherSessionPage({
           </div>
           <div className="text-left">
             <p className="text-2xl font-bold text-gray-400">{stats.offline}</p>
-            <p className="text-caption text-xs">Desconectados</p>
+            <p className="text-caption text-xs">{t("offlinePlural")}</p>
           </div>
         </button>
       </section>
@@ -394,13 +396,13 @@ export default function TeacherSessionPage({
       {statusFilter !== "ALL" && (
         <div className="flex items-center gap-2">
           <span className="text-body text-sm">
-            Filtrando por: <span className="font-semibold">{statusFilter === "ACTIVE" ? "Activos" : statusFilter === "DISTRACTED" ? "Distraídos" : statusFilter === "IDLE" ? "Inactivos" : "Desconectados"}</span>
+            {t("filteringBy")} <span className="font-semibold">{statusFilter === "ACTIVE" ? t("activePlural") : statusFilter === "DISTRACTED" ? t("distractedPlural") : statusFilter === "IDLE" ? t("idlePlural") : t("offlinePlural")}</span>
           </span>
           <button
             onClick={() => setStatusFilter("ALL")}
             className="text-[var(--color-primary)] text-sm hover:underline"
           >
-            Ver todos
+            {t("viewAll")}
           </button>
         </div>
       )}
@@ -415,19 +417,19 @@ export default function TeacherSessionPage({
             <div className="text-center">
               <h3 className="text-heading text-lg mb-1">
                 {attendance.length === 0
-                  ? "Esperando estudiantes"
-                  : "Sin resultados"}
+                  ? t("waitingForStudents")
+                  : t("noResults")}
               </h3>
               <p className="text-body">
                 {attendance.length === 0 ? (
                   <>
-                    Los estudiantes deben ingresar el código{" "}
+                    {t("studentsEnterCode")}{" "}
                     <span className="font-mono font-bold text-[var(--color-primary)]">
                       {session.password}
                     </span>
                   </>
                 ) : (
-                  "No se encontraron estudiantes con ese filtro"
+                  t("noStudentsWithFilter")
                 )}
               </p>
             </div>
@@ -509,12 +511,12 @@ export default function TeacherSessionPage({
                         }`}
                       >
                         {effectiveStatus === "ACTIVE"
-                          ? "Activo"
+                          ? t("active")
                           : effectiveStatus === "DISTRACTED"
-                          ? "Distraído"
+                          ? t("distracted")
                           : effectiveStatus === "IDLE"
-                          ? "Inactivo"
-                          : "Desconectado"}
+                          ? t("idle")
+                          : t("offline")}
                       </span>
                       {(record.currentStatus === "DISTRACTED" ||
                         record.currentStatus === "IDLE") &&
@@ -557,9 +559,9 @@ export default function TeacherSessionPage({
         isOpen={showEndSessionModal}
         onClose={() => setShowEndSessionModal(false)}
         onConfirm={handleEndSession}
-        title="Terminar sesión"
-        message="¿Estás seguro de que deseas terminar esta sesión? Los estudiantes serán desconectados."
-        confirmText="Terminar"
+        title={t("endSessionTitle")}
+        message={t("endSessionMessage")}
+        confirmText={t("endSessionConfirm")}
         variant="warning"
       />
 

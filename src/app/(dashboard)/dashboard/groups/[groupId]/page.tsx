@@ -3,6 +3,7 @@
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { PageContainer } from "@/components/layout";
 import { Avatar, StatusBadge, EmptyState, ConfirmModal } from "@/components/common";
 import { Toast } from "@/components/Toast";
@@ -36,6 +37,7 @@ export default function GroupDetailsPage({
 }: {
   params: Promise<{ groupId: string }>;
 }) {
+  const t = useTranslations("groups");
   const { groupId } = use(params);
   const router = useRouter();
   const [group, setGroup] = useState<Group | null>(null);
@@ -118,11 +120,11 @@ export default function GroupDetailsPage({
         const session = await res.json();
         router.push(`/dashboard/sessions/${session.id}`);
       } else {
-        setToastMessage("Error al iniciar sesión");
+        setToastMessage(t("errorStartingSession"));
         setShowToast(true);
       }
     } catch {
-      setToastMessage("Error al iniciar sesión");
+      setToastMessage(t("errorStartingSession"));
       setShowToast(true);
     } finally {
       setIsStarting(false);
@@ -147,11 +149,11 @@ export default function GroupDetailsPage({
         if (res.ok) {
           router.push("/dashboard");
         } else {
-          setToastMessage("Error al eliminar grupo");
+          setToastMessage(t("errorDeletingGroup"));
           setShowToast(true);
         }
       } catch {
-        setToastMessage("Error al eliminar grupo");
+        setToastMessage(t("errorDeletingGroup"));
         setShowToast(true);
       }
     } else if (deleteModal.type === "student" && deleteModal.studentId) {
@@ -165,16 +167,16 @@ export default function GroupDetailsPage({
         );
 
         if (res.ok) {
-          setToastMessage("Estudiante eliminado");
+          setToastMessage(t("studentDeleted"));
           setShowToast(true);
         } else {
           setStudents(previousStudents);
-          setToastMessage("Error al eliminar estudiante");
+          setToastMessage(t("errorDeletingStudent"));
           setShowToast(true);
         }
       } catch {
         setStudents(previousStudents);
-        setToastMessage("Error al eliminar estudiante");
+        setToastMessage(t("errorDeletingStudent"));
         setShowToast(true);
       }
     }
@@ -234,7 +236,7 @@ export default function GroupDetailsPage({
 
     if (successCount > 0 || dupCount > 0 || errorCount > 0) {
       setToastMessage(
-        `Añadidos: ${successCount}, Omitidos: ${dupCount}, Errores: ${errorCount}`
+        t("addedSummary", { success: successCount, skipped: dupCount, errors: errorCount })
       );
       setShowToast(true);
     }
@@ -248,7 +250,7 @@ export default function GroupDetailsPage({
         <div className="flex-center h-64">
           <div className="flex flex-col items-center gap-3">
             <div className="size-8 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
-            <span className="text-body">Cargando grupo...</span>
+            <span className="text-body">{t("loading")}</span>
           </div>
         </div>
       </PageContainer>
@@ -270,7 +272,7 @@ export default function GroupDetailsPage({
               <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-ping" />
             </div>
             <div>
-              <p className="text-heading text-sm">Sesión Activa</p>
+              <p className="text-heading text-sm">{t("activeSession")}</p>
               <p className="text-caption">{activeSession.preparedLesson.title}</p>
             </div>
           </div>
@@ -281,7 +283,7 @@ export default function GroupDetailsPage({
             <span className="material-symbols-outlined text-lg">
               visibility
             </span>
-            Monitorear
+            {t("monitor")}
           </button>
         </div>
       )}
@@ -305,7 +307,7 @@ export default function GroupDetailsPage({
         <div>
           <h1 className="text-heading-xl">{group.name}</h1>
           <p className="text-body mt-1">
-            {students.length} {students.length === 1 ? "estudiante" : "estudiantes"}
+            {students.length === 1 ? t("studentCountSingular", { count: students.length }) : t("studentCount", { count: students.length })}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -316,7 +318,7 @@ export default function GroupDetailsPage({
             <span className="material-symbols-outlined text-lg">
               person_add
             </span>
-            Añadir Estudiantes
+            {t("addStudents")}
           </button>
 
           {!activeSession && (
@@ -327,7 +329,7 @@ export default function GroupDetailsPage({
               <span className="material-symbols-outlined text-lg">
                 play_circle
               </span>
-              Iniciar Sesión
+              {t("startSession")}
             </button>
           )}
 
@@ -348,7 +350,7 @@ export default function GroupDetailsPage({
               <p className="text-2xl font-bold text-[var(--text-primary)]">
                 {students.length}
               </p>
-              <p className="text-caption">Total Estudiantes</p>
+              <p className="text-caption">{t("totalStudents")}</p>
             </div>
           </div>
         </div>
@@ -362,7 +364,7 @@ export default function GroupDetailsPage({
               <p className="text-2xl font-bold text-[var(--text-primary)]">
                 {lessons.length || "—"}
               </p>
-              <p className="text-caption">Lecciones</p>
+              <p className="text-caption">{t("lessons")}</p>
             </div>
           </div>
         </div>
@@ -374,9 +376,9 @@ export default function GroupDetailsPage({
             </div>
             <div>
               <p className="text-2xl font-bold text-green-400">
-                {activeSession ? "En vivo" : "—"}
+                {activeSession ? t("liveStatus") : "—"}
               </p>
-              <p className="text-caption">Estado</p>
+              <p className="text-caption">{t("status")}</p>
             </div>
           </div>
         </div>
@@ -388,7 +390,7 @@ export default function GroupDetailsPage({
             </div>
             <div>
               <p className="text-2xl font-bold text-[var(--text-primary)]">—</p>
-              <p className="text-caption">Próxima Clase</p>
+              <p className="text-caption">{t("nextClass")}</p>
             </div>
           </div>
         </div>
@@ -398,10 +400,10 @@ export default function GroupDetailsPage({
       {students.length === 0 ? (
         <EmptyState
           icon="person_off"
-          title="Sin estudiantes"
-          description="Añade estudiantes a este grupo para comenzar a monitorear su progreso."
+          title={t("noStudents")}
+          description={t("noStudentsDescription")}
           action={{
-            label: "Añadir Estudiantes",
+            label: t("addStudents"),
             onClick: () => setIsAddingStudent(true),
           }}
         />
@@ -411,11 +413,11 @@ export default function GroupDetailsPage({
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[var(--border-default)]">
-                  <th className="text-left p-4 text-label">Estudiante</th>
+                  <th className="text-left p-4 text-label">{t("studentColumn")}</th>
                   <th className="text-left p-4 text-label hidden sm:table-cell">
-                    Usuario
+                    {t("usernameColumn")}
                   </th>
-                  <th className="text-right p-4 text-label">Acciones</th>
+                  <th className="text-right p-4 text-label">{t("actionsColumn")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -476,7 +478,7 @@ export default function GroupDetailsPage({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="w-full max-w-lg surface-card p-6">
             <div className="flex-between mb-6">
-              <h2 className="text-heading text-xl">Añadir Estudiantes</h2>
+              <h2 className="text-heading text-xl">{t("addStudentsTitle")}</h2>
               <button
                 onClick={() => setIsAddingStudent(false)}
                 className="p-1 rounded hover:bg-[var(--surface-hover)]"
@@ -488,7 +490,7 @@ export default function GroupDetailsPage({
             <form onSubmit={handleBulkAdd} className="space-y-4">
               <div>
                 <label htmlFor="studentList" className="form-label">
-                  Lista de estudiantes (uno por línea: Nombre Apellido)
+                  {t("studentListLabel")}
                 </label>
                 <textarea
                   id="studentList"
@@ -496,13 +498,12 @@ export default function GroupDetailsPage({
                   value={rawText}
                   onChange={(e) => setRawText(e.target.value)}
                   className="form-textarea mt-1 font-mono"
-                  placeholder={"Juan Pérez\nMaría García\nCarlos López"}
+                  placeholder={t("studentListPlaceholder")}
                   required
                   autoFocus
                 />
                 <p className="form-hint">
-                  Se generará automáticamente un usuario único para cada
-                  estudiante.
+                  {t("studentListHint")}
                 </p>
               </div>
 
@@ -512,14 +513,14 @@ export default function GroupDetailsPage({
                   onClick={() => setIsAddingStudent(false)}
                   className="btn-ghost btn-md"
                 >
-                  Cancelar
+                  {t("cancel")}
                 </button>
                 <button
                   type="submit"
                   disabled={isProcessing}
                   className="btn-primary btn-md"
                 >
-                  {isProcessing ? "Añadiendo..." : "Añadir Estudiantes"}
+                  {isProcessing ? t("adding") : t("addStudents")}
                 </button>
               </div>
             </form>
@@ -532,7 +533,7 @@ export default function GroupDetailsPage({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="w-full max-w-md surface-card p-6">
             <div className="flex-between mb-6">
-              <h2 className="text-heading text-xl">Iniciar Sesión</h2>
+              <h2 className="text-heading text-xl">{t("startSession")}</h2>
               <button
                 onClick={() => setIsStartingSession(false)}
                 className="p-1 rounded hover:bg-[var(--surface-hover)]"
@@ -544,7 +545,7 @@ export default function GroupDetailsPage({
             <form onSubmit={handleStartSession} className="space-y-4">
               <div>
                 <label htmlFor="lessonSelect" className="form-label">
-                  Seleccionar Lección
+                  {t("selectLesson")}
                 </label>
                 <select
                   id="lessonSelect"
@@ -553,7 +554,7 @@ export default function GroupDetailsPage({
                   className="form-select mt-1"
                   required
                 >
-                  <option value="">-- Elige una lección --</option>
+                  <option value="">{t("chooseLessonPlaceholder")}</option>
                   {lessons.map((l) => (
                     <option key={l.id} value={l.id}>
                       {l.title}
@@ -561,12 +562,12 @@ export default function GroupDetailsPage({
                   ))}
                 </select>
                 <p className="form-hint">
-                  ¿No ves tu lección?{" "}
+                  {t("noLessonPrompt")}{" "}
                   <Link
                     href="/dashboard/lessons?tab=lessons"
                     className="text-[var(--color-primary)] hover:underline"
                   >
-                    Crear una nueva
+                    {t("createNew")}
                   </Link>
                 </p>
               </div>
@@ -577,14 +578,14 @@ export default function GroupDetailsPage({
                   onClick={() => setIsStartingSession(false)}
                   className="btn-ghost btn-md"
                 >
-                  Cancelar
+                  {t("cancel")}
                 </button>
                 <button
                   type="submit"
                   disabled={isStarting || !selectedLessonId}
                   className="btn-primary btn-md"
                 >
-                  {isStarting ? "Iniciando..." : "Comenzar Sesión"}
+                  {isStarting ? t("starting") : t("startSessionButton")}
                 </button>
               </div>
             </form>
@@ -603,13 +604,13 @@ export default function GroupDetailsPage({
         isOpen={deleteModal.isOpen}
         onClose={() => setDeleteModal({ ...deleteModal, isOpen: false })}
         onConfirm={handleConfirmDelete}
-        title={deleteModal.type === "group" ? "Eliminar grupo" : "Eliminar estudiante"}
+        title={deleteModal.type === "group" ? t("deleteGroup") : t("deleteStudent")}
         message={
           deleteModal.type === "group"
-            ? `¿Estás seguro de eliminar "${group?.name}" y TODOS sus estudiantes? Esta acción no se puede deshacer.`
-            : `¿Estás seguro de eliminar a "${deleteModal.studentName}" del grupo?`
+            ? t("deleteGroupConfirm", { name: group?.name || "" })
+            : t("deleteStudentConfirm", { name: deleteModal.studentName || "" })
         }
-        confirmText="Eliminar"
+        confirmText={t("deleteGroup").split(" ")[0]}
         variant="danger"
       />
     </PageContainer>

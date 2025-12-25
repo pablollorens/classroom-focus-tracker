@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useFocusTracking } from "@/hooks/useFocusTracking";
 
 interface SessionData {
@@ -40,6 +41,7 @@ interface SessionContent {
 }
 
 export default function StudentSessionPage() {
+    const t = useTranslations("session");
     const router = useRouter();
     const [status, setStatus] = useState<"LOADING" | "ACTIVE" | "ERROR">("LOADING");
     const [sessionData, setSessionData] = useState<SessionData | null>(null);
@@ -157,7 +159,7 @@ export default function StudentSessionPage() {
             <div className="min-h-screen flex items-center justify-center bg-[#101922]">
                 <div className="flex flex-col items-center gap-3">
                     <div className="size-8 border-2 border-[#137fec] border-t-transparent rounded-full animate-spin" />
-                    <span className="text-[#9dabb9]">Cargando sesión...</span>
+                    <span className="text-[#9dabb9]">{t("loading")}</span>
                 </div>
             </div>
         );
@@ -187,7 +189,7 @@ export default function StudentSessionPage() {
                                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                                             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
                                         </span>
-                                        <span className="text-sm text-green-400 font-medium">Enfocado</span>
+                                        <span className="text-sm text-green-400 font-medium">{t("focused")}</span>
                                     </>
                                 )}
                                 {focusStatus === "IDLE" && (
@@ -195,7 +197,7 @@ export default function StudentSessionPage() {
                                         <span className="relative flex h-2.5 w-2.5">
                                             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-yellow-500"></span>
                                         </span>
-                                        <span className="text-sm text-yellow-400 font-medium">Inactivo</span>
+                                        <span className="text-sm text-yellow-400 font-medium">{t("idle")}</span>
                                     </>
                                 )}
                                 {focusStatus === "DISTRACTED" && (
@@ -204,7 +206,7 @@ export default function StudentSessionPage() {
                                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                                             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
                                         </span>
-                                        <span className="text-sm text-red-400 font-medium">Distraido</span>
+                                        <span className="text-sm text-red-400 font-medium">{t("distracted")}</span>
                                     </>
                                 )}
                             </div>
@@ -213,7 +215,7 @@ export default function StudentSessionPage() {
                                 className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-[#9dabb9] hover:text-white hover:bg-[#283039] transition-colors"
                             >
                                 <span className="material-symbols-outlined text-[18px]">logout</span>
-                                Salir
+                                {t("exit")}
                             </button>
                         </div>
                     </div>
@@ -225,7 +227,7 @@ export default function StudentSessionPage() {
                     <aside className="w-72 bg-[#111418] border-r border-[#283039] flex flex-col shrink-0">
                         <div className="p-4 border-b border-[#283039]">
                             <h2 className="text-sm font-semibold text-[#9dabb9] uppercase tracking-wider">
-                                Recursos ({content?.lesson.exercises.filter(e => e.resource).length || 0})
+                                {t("resources", { count: content?.lesson.exercises.filter(e => e.resource).length || 0 })}
                             </h2>
                         </div>
                         <div className="flex-1 overflow-y-auto">
@@ -330,8 +332,8 @@ export default function StudentSessionPage() {
                             <div className="flex-1 flex items-center justify-center">
                                 <div className="text-center">
                                     <span className="material-symbols-outlined text-6xl text-[#137fec] mb-4">auto_stories</span>
-                                    <h2 className="text-xl font-bold mb-2">Selecciona un recurso</h2>
-                                    <p className="text-[#9dabb9]">Elige un recurso de la lista para comenzar</p>
+                                    <h2 className="text-xl font-bold mb-2">{t("selectResource")}</h2>
+                                    <p className="text-[#9dabb9]">{t("selectResourceDescription")}</p>
                                 </div>
                             </div>
                         )}
@@ -346,13 +348,13 @@ export default function StudentSessionPage() {
                             <div className="flex items-center gap-2">
                                 <span className="material-symbols-outlined text-[#9dabb9]">timer</span>
                                 <span className="font-mono font-semibold">{sessionDuration}</span>
-                                <span className="text-sm text-[#9dabb9]">en sesión</span>
+                                <span className="text-sm text-[#9dabb9]">{t("inSession")}</span>
                             </div>
 
                             {/* Teacher */}
                             <div className="flex items-center gap-2">
                                 <span className="material-symbols-outlined text-[#9dabb9]">person</span>
-                                <span className="text-sm">Prof. {teacherName}</span>
+                                <span className="text-sm">{t("teacher", { name: teacherName })}</span>
                             </div>
                         </div>
 
@@ -368,7 +370,7 @@ export default function StudentSessionPage() {
                             <span className="material-symbols-outlined text-xl">
                                 {handRaised ? "front_hand" : "back_hand"}
                             </span>
-                            {handRaised ? "Bajar mano" : "Levantar mano"}
+                            {handRaised ? t("lowerHand") : t("raiseHand")}
                         </button>
                     </div>
                 </footer>
@@ -386,8 +388,8 @@ export default function StudentSessionPage() {
                             </span>
                             <p className="text-sm font-medium">
                                 {focusStatus === "DISTRACTED"
-                                    ? "Parece que estás distraído. Vuelve a la lección."
-                                    : "Has estado inactivo por un momento."}
+                                    ? t("distractionWarning")
+                                    : t("idleWarning")}
                             </p>
                         </div>
                     </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { PageContainer } from "@/components/layout";
 
 interface SessionSummary {
@@ -20,6 +21,7 @@ interface StudentStats {
 }
 
 export default function StudentStatsPage({ params }: { params: Promise<{ groupId: string, studentId: string }> }) {
+    const t = useTranslations("studentStats");
     const { groupId, studentId } = use(params);
     const [stats, setStats] = useState<StudentStats | null>(null);
     const [loading, setLoading] = useState(true);
@@ -48,7 +50,7 @@ export default function StudentStatsPage({ params }: { params: Promise<{ groupId
                 <div className="flex-center h-64">
                     <div className="flex flex-col items-center gap-3">
                         <div className="size-8 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
-                        <span className="text-body">Cargando estadísticas...</span>
+                        <span className="text-body">{t("loading")}</span>
                     </div>
                 </div>
             </PageContainer>
@@ -60,7 +62,7 @@ export default function StudentStatsPage({ params }: { params: Promise<{ groupId
             <PageContainer>
                 <div className="text-center py-12">
                     <span className="material-symbols-outlined text-4xl text-[var(--text-muted)] mb-2">error</span>
-                    <p className="text-body">Estudiante no encontrado o error al cargar datos.</p>
+                    <p className="text-body">{t("notFound")}</p>
                 </div>
             </PageContainer>
         );
@@ -75,7 +77,7 @@ export default function StudentStatsPage({ params }: { params: Promise<{ groupId
                 </Link>
                 <span className="text-[var(--text-muted)]">/</span>
                 <Link href={`/dashboard/groups/${groupId}`} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]">
-                    Grupo
+                    {t("breadcrumbGroup")}
                 </Link>
                 <span className="text-[var(--text-muted)]">/</span>
                 <span className="text-[var(--text-primary)] font-medium">{stats.studentName}</span>
@@ -98,7 +100,7 @@ export default function StudentStatsPage({ params }: { params: Promise<{ groupId
                             <p className={`text-2xl font-bold ${stats.focusScore >= 70 ? 'text-green-400' : stats.focusScore >= 40 ? 'text-yellow-400' : 'text-red-400'}`}>
                                 {stats.focusScore}%
                             </p>
-                            <p className="text-caption">Promedio de Enfoque</p>
+                            <p className="text-caption">{t("focusAverage")}</p>
                         </div>
                     </div>
                 </div>
@@ -112,7 +114,7 @@ export default function StudentStatsPage({ params }: { params: Promise<{ groupId
                             <p className="text-2xl font-bold text-[var(--text-primary)]">
                                 {stats.totalSessions}
                             </p>
-                            <p className="text-caption">Sesiones Asistidas</p>
+                            <p className="text-caption">{t("sessionsAttended")}</p>
                         </div>
                     </div>
                 </div>
@@ -126,7 +128,7 @@ export default function StudentStatsPage({ params }: { params: Promise<{ groupId
                             <p className="text-2xl font-bold text-[var(--text-primary)]">
                                 {stats.distractions}
                             </p>
-                            <p className="text-caption">Distracciones Totales</p>
+                            <p className="text-caption">{t("totalDistractions")}</p>
                         </div>
                     </div>
                 </div>
@@ -135,13 +137,13 @@ export default function StudentStatsPage({ params }: { params: Promise<{ groupId
             {/* Recent Activity */}
             <div className="surface-card overflow-hidden">
                 <div className="p-4 border-b border-[var(--border-default)]">
-                    <h3 className="text-heading">Actividad Reciente</h3>
+                    <h3 className="text-heading">{t("recentActivity")}</h3>
                 </div>
                 <div>
                     {stats.recentSessions.length === 0 ? (
                         <div className="p-6 text-center">
                             <span className="material-symbols-outlined text-3xl text-[var(--text-muted)] mb-2">history</span>
-                            <p className="text-body">Sin historial de sesiones aún.</p>
+                            <p className="text-body">{t("noSessionHistory")}</p>
                         </div>
                     ) : (
                         <ul className="divide-y divide-[var(--border-default)]">
