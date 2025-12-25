@@ -1,19 +1,23 @@
 import type { Metadata } from "next";
+import { getLocale, getMessages } from "next-intl/server";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 
 export const metadata: Metadata = {
   title: "Classroom Focus Tracker",
-  description: "Monitoreo de atención de estudiantes en tiempo real",
+  description: "Real-time student attention monitoring",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
-    <html lang="es" className="dark">
+    <html lang={locale} className="dark">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -27,7 +31,9 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased">
-        <Providers>{children}</Providers>
+        <Providers locale={locale} messages={messages}>
+          {children}
+        </Providers>
       </body>
     </html>
   );
