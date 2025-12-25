@@ -1,8 +1,11 @@
 "use client";
 
 import { signOut } from "next-auth/react";
+import { useTranslations } from "next-intl";
 
 export function SignOutButton() {
+  const t = useTranslations("auth");
+
   const handleSignOut = () => {
     // Clear remember session preference
     localStorage.removeItem("rememberSession");
@@ -15,7 +18,7 @@ export function SignOutButton() {
       className="btn-ghost btn-sm"
     >
       <span className="material-symbols-outlined text-lg">logout</span>
-      <span className="hidden sm:inline">Salir</span>
+      <span className="hidden sm:inline">{t("signOut")}</span>
     </button>
   );
 }

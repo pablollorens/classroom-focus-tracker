@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useTranslations } from "next-intl";
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -20,11 +21,14 @@ export function ConfirmModal({
   onConfirm,
   title,
   message,
-  confirmText = "Eliminar",
-  cancelText = "Cancelar",
+  confirmText,
+  cancelText,
   variant = "danger",
   loading = false,
 }: ConfirmModalProps) {
+  const t = useTranslations("common");
+  const actualConfirmText = confirmText ?? t("delete");
+  const actualCancelText = cancelText ?? t("cancel");
   const modalRef = useRef<HTMLDivElement>(null);
 
   // Close on escape key
@@ -121,7 +125,7 @@ export function ConfirmModal({
             disabled={loading}
             className="flex-1 btn-secondary btn-md"
           >
-            {cancelText}
+            {actualCancelText}
           </button>
           <button
             onClick={onConfirm}
@@ -135,7 +139,7 @@ export function ConfirmModal({
                 <span className="material-symbols-outlined text-lg">
                   {variant === "danger" ? "delete" : "check"}
                 </span>
-                {confirmText}
+                {actualConfirmText}
               </>
             )}
           </button>
