@@ -1,32 +1,11 @@
 "use client";
 
-import { use, useState, useEffect, useCallback } from "react";
+import { use, useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { PageContainer } from "@/components/layout";
 import { ResourceIcon, EmptyState, ConfirmModal } from "@/components/common";
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-  DragOverlay,
-  DragStartEvent,
-  useDraggable,
-  useDroppable,
-} from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 
 type ResourceType = "VIDEO" | "PDF" | "URL" | "TEXT";
 
@@ -35,6 +14,7 @@ interface Resource {
   title: string;
   type: ResourceType;
   url: string | null;
+  content: string | null;
   duration: number | null;
 }
 
@@ -53,149 +33,7 @@ interface Lesson {
   exercises: Exercise[];
 }
 
-// Sortable Exercise Item Component
-function SortableExerciseItem({
-  exercise,
-  index,
-  onDelete,
-}: {
-  exercise: Exercise;
-  index: number;
-  onDelete: (id: string, title: string) => void;
-}) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: exercise.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={`surface-card p-4 flex items-center gap-4 group ${
-        isDragging ? "shadow-lg ring-2 ring-[var(--color-primary)]" : ""
-      }`}
-    >
-      {/* Drag Handle */}
-      <button
-        {...attributes}
-        {...listeners}
-        className="p-1 cursor-grab active:cursor-grabbing text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-      >
-        <span className="material-symbols-outlined">drag_indicator</span>
-      </button>
-
-      {/* Index */}
-      <span className="w-8 h-8 flex-center rounded-lg bg-[var(--surface-overlay)] text-sm font-semibold text-[var(--text-secondary)]">
-        {index + 1}
-      </span>
-
-      {/* Resource Info */}
-      <div className="flex-1 min-w-0">
-        <h4 className="text-heading text-sm truncate">{exercise.title}</h4>
-        <a
-          href={exercise.url}
-          target="_blank"
-          rel="noreferrer"
-          onClick={(e) => e.stopPropagation()}
-          className="text-caption text-[var(--color-primary)] hover:underline truncate block"
-        >
-          {exercise.url}
-        </a>
-      </div>
-
-      {/* Actions */}
-      <button
-        onClick={() => onDelete(exercise.id, exercise.title)}
-        className="p-2 rounded-lg text-[var(--text-muted)] hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-all"
-      >
-        <span className="material-symbols-outlined text-xl">delete</span>
-      </button>
-    </div>
-  );
-}
-
-// Draggable Resource Card (from library sidebar)
-function DraggableResourceCard({
-  resource,
-  onAdd,
-}: {
-  resource: Resource;
-  onAdd: (resource: Resource) => void;
-}) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: `resource-${resource.id}`,
-    data: { type: "resource", resource },
-  });
-
-  const style = transform
-    ? {
-        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-      }
-    : undefined;
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...listeners}
-      {...attributes}
-      onClick={() => onAdd(resource)}
-      className={`surface-card-interactive p-3 flex items-center gap-3 cursor-grab active:cursor-grabbing ${
-        isDragging ? "opacity-50 shadow-lg ring-2 ring-[var(--color-primary)]" : ""
-      }`}
-    >
-      <div className="w-10 h-10 flex-center rounded-lg bg-[var(--surface-overlay)]">
-        <ResourceIcon type={resource.type} size="sm" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <h4 className="text-sm font-medium text-[var(--text-primary)] truncate">
-          {resource.title}
-        </h4>
-        <p className="text-caption">{resource.type}</p>
-      </div>
-      <span className="material-symbols-outlined text-[var(--text-muted)]">
-        drag_indicator
-      </span>
-    </div>
-  );
-}
-
-// Droppable zone for exercises
-function ExercisesDropZone({
-  children,
-  isEmpty,
-}: {
-  children: React.ReactNode;
-  isEmpty: boolean;
-}) {
-  const { setNodeRef, isOver } = useDroppable({
-    id: "exercises-drop-zone",
-  });
-
-  return (
-    <div
-      ref={setNodeRef}
-      className={`min-h-[200px] rounded-lg transition-colors ${
-        isOver
-          ? "bg-[var(--color-primary)]/10 ring-2 ring-[var(--color-primary)] ring-dashed"
-          : ""
-      } ${isEmpty ? "flex items-center justify-center" : ""}`}
-    >
-      {children}
-    </div>
-  );
-}
+type ModalTab = "search" | "create";
 
 export default function LessonEditorPage({
   params,
@@ -208,25 +46,21 @@ export default function LessonEditorPage({
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [resources, setResources] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeId, setActiveId] = useState<string | null>(null);
 
-  // Manual add form
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [manualTitle, setManualTitle] = useState("");
-  const [manualUrl, setManualUrl] = useState("");
+  // Add Exercise Modal
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [modalTab, setModalTab] = useState<ModalTab>("search");
+  const [resourceSearch, setResourceSearch] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // URL validation
-  const [urlValidation, setUrlValidation] = useState<{
-    status: "idle" | "checking" | "allowed" | "blocked" | "unknown";
-    message: string;
-  }>({ status: "idle", message: "" });
-
-  // Sidebar toggle (mobile)
-  const [showSidebar, setShowSidebar] = useState(false);
-
-  // Search
-  const [resourceSearch, setResourceSearch] = useState("");
+  // Create Resource Form
+  const [newResource, setNewResource] = useState({
+    title: "",
+    type: "URL" as ResourceType,
+    url: "",
+    content: "",
+    duration: "",
+  });
 
   // Delete Modal State
   const [deleteModal, setDeleteModal] = useState<{
@@ -236,55 +70,9 @@ export default function LessonEditorPage({
     exerciseTitle?: string;
   }>({ isOpen: false, type: "exercise" });
 
-  // DnD sensors
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
   useEffect(() => {
     fetchData();
   }, [lessonId]);
-
-  // Validate URL when it changes
-  useEffect(() => {
-    if (!manualUrl || manualUrl.length < 10) {
-      setUrlValidation({ status: "idle", message: "" });
-      return;
-    }
-
-    // Debounce
-    const timer = setTimeout(async () => {
-      setUrlValidation({ status: "checking", message: t("checkingUrl") });
-
-      try {
-        const res = await fetch("/api/check-embed", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: manualUrl }),
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          if (data.allowed === true) {
-            setUrlValidation({ status: "allowed", message: data.reason });
-          } else if (data.allowed === false) {
-            setUrlValidation({ status: "blocked", message: data.reason });
-          } else {
-            setUrlValidation({ status: "unknown", message: data.reason || t("couldNotVerify") });
-          }
-        } else {
-          setUrlValidation({ status: "unknown", message: t("verifyError") });
-        }
-      } catch {
-        setUrlValidation({ status: "unknown", message: t("connectionError") });
-      }
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [manualUrl]);
 
   const fetchData = async () => {
     try {
@@ -320,59 +108,10 @@ export default function LessonEditorPage({
     return !inLesson && matchesSearch;
   });
 
-  const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as string);
-  };
-
-  const handleDragEnd = async (event: DragEndEvent) => {
-    setActiveId(null);
-    const { active, over } = event;
-
-    if (!over || !lesson) return;
-
-    const activeIdStr = active.id as string;
-
-    // Check if dragging a resource from the library
-    if (activeIdStr.startsWith("resource-")) {
-      // Dropped on the exercises zone or on an existing exercise
-      if (over.id === "exercises-drop-zone" || lesson.exercises.some(e => e.id === over.id)) {
-        const resourceData = active.data.current?.resource as Resource | undefined;
-        if (resourceData) {
-          handleAddFromResource(resourceData);
-        }
-      }
-      return;
-    }
-
-    // Otherwise, it's a reorder of existing exercises
-    if (active.id !== over.id) {
-      const oldIndex = lesson.exercises.findIndex((e) => e.id === active.id);
-      const newIndex = lesson.exercises.findIndex((e) => e.id === over.id);
-
-      if (oldIndex === -1 || newIndex === -1) return;
-
-      const newExercises = arrayMove(lesson.exercises, oldIndex, newIndex);
-      setLesson({ ...lesson, exercises: newExercises });
-
-      // Save new order to API
-      try {
-        await fetch(`/api/lessons/${lessonId}/exercises/reorder`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            exerciseIds: newExercises.map((e) => e.id),
-          }),
-        });
-      } catch (error) {
-        console.error("Failed to reorder:", error);
-        fetchData(); // Revert on error
-      }
-    }
-  };
-
   const handleAddFromResource = async (resource: Resource) => {
     if (!lesson) return;
 
+    setSubmitting(true);
     try {
       const res = await fetch(`/api/lessons/${lessonId}/exercises`, {
         method: "POST",
@@ -390,42 +129,78 @@ export default function LessonEditorPage({
           ...lesson,
           exercises: [...lesson.exercises, newExercise],
         });
-      }
-    } catch (error) {
-      console.error("Failed to add exercise:", error);
-    }
-  };
-
-  const handleAddManual = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!lesson) return;
-
-    setSubmitting(true);
-    try {
-      const res = await fetch(`/api/lessons/${lessonId}/exercises`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: manualTitle,
-          url: manualUrl,
-        }),
-      });
-
-      if (res.ok) {
-        const newExercise = await res.json();
-        setLesson({
-          ...lesson,
-          exercises: [...lesson.exercises, newExercise],
-        });
-        setManualTitle("");
-        setManualUrl("");
-        setShowAddForm(false);
+        closeModal();
       }
     } catch (error) {
       console.error("Failed to add exercise:", error);
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleCreateAndAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!lesson) return;
+
+    setSubmitting(true);
+    try {
+      // First create the resource
+      const resourcePayload = {
+        title: newResource.title,
+        type: newResource.type,
+        url: newResource.type !== "TEXT" ? newResource.url : null,
+        content: newResource.type === "TEXT" ? newResource.content : null,
+        duration: newResource.duration ? parseInt(newResource.duration) : null,
+      };
+
+      const resourceRes = await fetch("/api/resources", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(resourcePayload),
+      });
+
+      if (resourceRes.ok) {
+        const createdResource = await resourceRes.json();
+        setResources([createdResource, ...resources]);
+
+        // Then add it as an exercise
+        const exerciseRes = await fetch(`/api/lessons/${lessonId}/exercises`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: createdResource.title,
+            url: createdResource.url || "",
+            resourceId: createdResource.id,
+          }),
+        });
+
+        if (exerciseRes.ok) {
+          const newExercise = await exerciseRes.json();
+          setLesson({
+            ...lesson,
+            exercises: [...lesson.exercises, newExercise],
+          });
+          closeModal();
+        }
+      }
+    } catch (error) {
+      console.error("Failed to create resource:", error);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const closeModal = () => {
+    setShowAddModal(false);
+    setModalTab("search");
+    setResourceSearch("");
+    setNewResource({
+      title: "",
+      type: "URL",
+      url: "",
+      content: "",
+      duration: "",
+    });
   };
 
   const openDeleteExerciseModal = (exerciseId: string, exerciseTitle: string) => {
@@ -438,7 +213,6 @@ export default function LessonEditorPage({
 
   const handleConfirmDelete = async () => {
     if (deleteModal.type === "exercise" && deleteModal.exerciseId && lesson) {
-      // Optimistic update
       setLesson({
         ...lesson,
         exercises: lesson.exercises.filter((e) => e.id !== deleteModal.exerciseId),
@@ -450,12 +224,12 @@ export default function LessonEditorPage({
         });
       } catch (error) {
         console.error("Failed to delete:", error);
-        fetchData(); // Revert
+        fetchData();
       }
     } else if (deleteModal.type === "lesson") {
       try {
         await fetch(`/api/lessons/${lessonId}`, { method: "DELETE" });
-        router.push("/dashboard/lessons?tab=lessons");
+        router.push("/dashboard/lessons");
       } catch (error) {
         console.error("Failed to delete lesson:", error);
       }
@@ -464,13 +238,13 @@ export default function LessonEditorPage({
     setDeleteModal({ isOpen: false, type: "exercise" });
   };
 
-  const activeExercise = activeId
-    ? lesson?.exercises.find((e) => e.id === activeId)
-    : null;
-
-  const activeResource = activeId?.startsWith("resource-")
-    ? resources.find((r) => `resource-${r.id}` === activeId)
-    : null;
+  const formatDuration = (minutes: number | null) => {
+    if (!minutes) return null;
+    if (minutes < 60) return `${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+  };
 
   if (loading) {
     return (
@@ -502,314 +276,346 @@ export default function LessonEditorPage({
   }
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
-      <div className="flex h-[calc(100vh-60px)]">
-        {/* Main Content */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="max-w-4xl mx-auto p-6 space-y-6">
-            {/* Breadcrumb */}
-            <nav className="flex items-center gap-2 text-sm">
-              <Link
-                href="/dashboard"
-                className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-              >
-                Dashboard
-              </Link>
-              <span className="text-[var(--text-muted)]">/</span>
-              <Link
-                href="/dashboard/lessons?tab=lessons"
-                className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-              >
-                {t("breadcrumbLessons")}
-              </Link>
-              <span className="text-[var(--text-muted)]">/</span>
-              <span className="text-[var(--text-primary)] font-medium">
-                {lesson.title}
-              </span>
-            </nav>
+    <PageContainer>
+      {/* Breadcrumb */}
+      <nav className="flex items-center gap-2 text-sm">
+        <Link
+          href="/dashboard"
+          className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+        >
+          Dashboard
+        </Link>
+        <span className="text-[var(--text-muted)]">/</span>
+        <Link
+          href="/dashboard/lessons"
+          className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+        >
+          {t("breadcrumbLessons")}
+        </Link>
+        <span className="text-[var(--text-muted)]">/</span>
+        <span className="text-[var(--text-primary)] font-medium">
+          {lesson.title}
+        </span>
+      </nav>
 
-            {/* Header */}
-            <header className="flex-between">
-              <div>
-                <h1 className="text-heading-xl">{lesson.title}</h1>
-                <p className="text-body mt-1">
-                  {lesson.exercises.length === 1
-                    ? t("exercisesCountSingular", { count: lesson.exercises.length })
-                    : t("exercisesCount", { count: lesson.exercises.length })}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                {/* Mobile sidebar toggle */}
-                <button
-                  onClick={() => setShowSidebar(!showSidebar)}
-                  className="btn-secondary btn-sm lg:hidden"
-                >
-                  <span className="material-symbols-outlined text-lg">
-                    library_add
-                  </span>
-                  {t("resources")}
-                </button>
-                <button onClick={openDeleteLessonModal} className="btn-ghost btn-sm text-red-400 hover:text-red-300">
-                  <span className="material-symbols-outlined text-lg">delete</span>
-                </button>
-              </div>
-            </header>
-
-            {/* Exercises List */}
-            <ExercisesDropZone isEmpty={lesson.exercises.length === 0}>
-              {lesson.exercises.length === 0 ? (
-                <EmptyState
-                  icon="playlist_add"
-                  title={t("noExercises")}
-                  description={t("noExercisesDescription")}
-                  action={{
-                    label: t("addManualExercise"),
-                    onClick: () => setShowAddForm(true),
-                  }}
-                />
-              ) : (
-                <SortableContext
-                  items={lesson.exercises.map((e) => e.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <div className="space-y-2">
-                    {lesson.exercises.map((exercise, index) => (
-                      <SortableExerciseItem
-                        key={exercise.id}
-                        exercise={exercise}
-                        index={index}
-                        onDelete={openDeleteExerciseModal}
-                      />
-                    ))}
-                  </div>
-                </SortableContext>
-              )}
-            </ExercisesDropZone>
-
-            {/* Add Exercise Button */}
-            <button
-              onClick={() => setShowAddForm(true)}
-              className="w-full p-4 border-2 border-dashed border-[var(--border-default)] rounded-lg text-[var(--text-muted)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-colors flex-center gap-2"
-            >
-              <span className="material-symbols-outlined">add</span>
-              {t("addManualExercise")}
-            </button>
-          </div>
+      {/* Header */}
+      <header className="flex-between">
+        <div>
+          <h1 className="text-heading-xl">{lesson.title}</h1>
+          <p className="text-body mt-1">
+            {lesson.exercises.length === 1
+              ? t("exercisesCountSingular", { count: lesson.exercises.length })
+              : t("exercisesCount", { count: lesson.exercises.length })}
+          </p>
         </div>
+        <button onClick={openDeleteLessonModal} className="btn-ghost btn-sm text-red-400 hover:text-red-300">
+          <span className="material-symbols-outlined text-lg">delete</span>
+        </button>
+      </header>
 
-      {/* Resources Sidebar */}
-      <aside
-        className={`
-          fixed lg:static inset-y-0 right-0 z-40
-          w-80 bg-[var(--surface-darker)] border-l border-[var(--border-default)]
-          transform transition-transform duration-300
-          ${showSidebar ? "translate-x-0" : "translate-x-full lg:translate-x-0"}
-        `}
-      >
-        <div className="h-full flex flex-col">
-          {/* Sidebar Header */}
-          <div className="p-4 border-b border-[var(--border-default)] flex-between">
-            <h2 className="text-heading text-lg">{t("library")}</h2>
-            <button
-              onClick={() => setShowSidebar(false)}
-              className="lg:hidden p-1 hover:bg-[var(--surface-hover)] rounded"
-            >
-              <span className="material-symbols-outlined">close</span>
-            </button>
-          </div>
-
-          {/* Search */}
-          <div className="p-4">
-            <div className="form-search">
-              <span className="material-symbols-outlined form-search-icon">
-                search
-              </span>
-              <input
-                type="text"
-                placeholder={t("searchResources")}
-                value={resourceSearch}
-                onChange={(e) => setResourceSearch(e.target.value)}
-                className="form-search-input"
-              />
-            </div>
-          </div>
-
-          {/* Resources List */}
-          <div className="flex-1 overflow-y-auto p-4 pt-0 space-y-2">
-            {availableResources.length === 0 ? (
-              <div className="text-center py-8">
-                <span className="material-symbols-outlined text-4xl text-[var(--text-muted)] mb-2">
-                  folder_open
-                </span>
-                <p className="text-caption">
-                  {resourceSearch
-                    ? t("noResults")
-                    : t("allResourcesAdded")}
-                </p>
-                <Link
-                  href="/dashboard/lessons?tab=resources"
-                  className="text-sm text-[var(--color-primary)] hover:underline mt-2 inline-block"
-                >
-                  {t("createNewResource")}
-                </Link>
-              </div>
-            ) : (
-              availableResources.map((resource) => (
-                <DraggableResourceCard
-                  key={resource.id}
-                  resource={resource}
-                  onAdd={handleAddFromResource}
-                />
-              ))
-            )}
-          </div>
-        </div>
-      </aside>
-
-      {/* Mobile Sidebar Overlay */}
-      {showSidebar && (
-        <div
-          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
-          onClick={() => setShowSidebar(false)}
+      {/* Exercises List */}
+      {lesson.exercises.length === 0 ? (
+        <EmptyState
+          icon="playlist_add"
+          title={t("noExercises")}
+          description={t("noExercisesDescription")}
+          action={{
+            label: t("addExercise"),
+            onClick: () => setShowAddModal(true),
+          }}
         />
-      )}
+      ) : (
+        <div className="space-y-2">
+          {lesson.exercises.map((exercise, index) => (
+            <div
+              key={exercise.id}
+              className="surface-card p-4 flex items-center gap-4 group"
+            >
+              {/* Index */}
+              <span className="w-8 h-8 flex-center rounded-lg bg-[var(--surface-overlay)] text-sm font-semibold text-[var(--text-secondary)]">
+                {index + 1}
+              </span>
 
-      {/* Manual Add Form Modal */}
-      {showAddForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-md surface-card p-6">
-            <div className="flex-between mb-6">
-              <h2 className="text-heading text-xl">{t("addExercise")}</h2>
+              {/* Resource Icon */}
+              {exercise.resource && (
+                <div className="w-10 h-10 flex-center rounded-lg bg-[var(--surface-overlay)]">
+                  <ResourceIcon type={exercise.resource.type} size="sm" />
+                </div>
+              )}
+
+              {/* Resource Info */}
+              <div className="flex-1 min-w-0">
+                <h4 className="text-heading text-sm truncate">{exercise.title}</h4>
+                {exercise.url && (
+                  <a
+                    href={exercise.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-caption text-[var(--color-primary)] hover:underline truncate block"
+                  >
+                    {exercise.url}
+                  </a>
+                )}
+              </div>
+
+              {/* Duration Badge */}
+              {exercise.resource?.duration && (
+                <span className="px-2 py-1 text-xs font-medium rounded bg-[var(--surface-overlay)] text-[var(--text-secondary)]">
+                  {formatDuration(exercise.resource.duration)}
+                </span>
+              )}
+
+              {/* Delete Action */}
               <button
-                onClick={() => setShowAddForm(false)}
-                className="p-1 rounded hover:bg-[var(--surface-hover)]"
+                onClick={() => openDeleteExerciseModal(exercise.id, exercise.title)}
+                className="p-2 rounded-lg text-[var(--text-muted)] hover:text-red-400 hover:bg-red-400/10 opacity-0 group-hover:opacity-100 transition-all"
               >
-                <span className="material-symbols-outlined">close</span>
+                <span className="material-symbols-outlined text-xl">delete</span>
               </button>
             </div>
-
-            <form onSubmit={handleAddManual} className="space-y-4">
-              <div>
-                <label htmlFor="exerciseTitle" className="form-label">
-                  {t("titleLabel")}
-                </label>
-                <input
-                  type="text"
-                  id="exerciseTitle"
-                  value={manualTitle}
-                  onChange={(e) => setManualTitle(e.target.value)}
-                  className="form-input mt-1"
-                  placeholder={t("titlePlaceholder")}
-                  required
-                  autoFocus
-                />
-              </div>
-
-              <div>
-                <label htmlFor="exerciseUrl" className="form-label">
-                  {t("urlLabel")}
-                </label>
-                <input
-                  type="url"
-                  id="exerciseUrl"
-                  value={manualUrl}
-                  onChange={(e) => setManualUrl(e.target.value)}
-                  className={`form-input mt-1 ${
-                    urlValidation.status === "blocked" ? "border-red-500 focus:ring-red-500" :
-                    urlValidation.status === "allowed" ? "border-green-500 focus:ring-green-500" : ""
-                  }`}
-                  placeholder="https://"
-                  required
-                />
-                {/* URL Validation Indicator */}
-                {urlValidation.status !== "idle" && (
-                  <div className={`mt-2 flex items-center gap-2 text-sm ${
-                    urlValidation.status === "checking" ? "text-[var(--text-muted)]" :
-                    urlValidation.status === "allowed" ? "text-green-400" :
-                    urlValidation.status === "blocked" ? "text-red-400" :
-                    "text-yellow-400"
-                  }`}>
-                    {urlValidation.status === "checking" && (
-                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                    )}
-                    {urlValidation.status === "allowed" && (
-                      <span className="material-symbols-outlined text-lg">check_circle</span>
-                    )}
-                    {urlValidation.status === "blocked" && (
-                      <span className="material-symbols-outlined text-lg">cancel</span>
-                    )}
-                    {urlValidation.status === "unknown" && (
-                      <span className="material-symbols-outlined text-lg">help</span>
-                    )}
-                    <span>{urlValidation.message}</span>
-                  </div>
-                )}
-                {urlValidation.status === "blocked" && (
-                  <p className="mt-1 text-xs text-[var(--text-muted)]">
-                    {t("recommendedSites")}
-                  </p>
-                )}
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowAddForm(false);
-                    setManualTitle("");
-                    setManualUrl("");
-                    setUrlValidation({ status: "idle", message: "" });
-                  }}
-                  className="btn-ghost btn-md"
-                >
-                  {t("cancel")}
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting || urlValidation.status === "blocked" || urlValidation.status === "checking"}
-                  className="btn-primary btn-md"
-                >
-                  {submitting ? t("adding") : t("add")}
-                </button>
-              </div>
-            </form>
-          </div>
+          ))}
         </div>
       )}
 
-      {/* Drag Overlay */}
-      <DragOverlay>
-        {activeExercise ? (
-          <div className="surface-card p-4 flex items-center gap-4 shadow-xl ring-2 ring-[var(--color-primary)]">
-            <span className="material-symbols-outlined text-[var(--text-muted)]">
-              drag_indicator
-            </span>
-            <span className="w-8 h-8 flex-center rounded-lg bg-[var(--surface-overlay)] text-sm font-semibold">
-              •
-            </span>
-            <div className="flex-1">
-              <h4 className="text-heading text-sm">{activeExercise.title}</h4>
+      {/* Add Exercise Button */}
+      <button
+        onClick={() => setShowAddModal(true)}
+        className="w-full p-4 border-2 border-dashed border-[var(--border-default)] rounded-lg text-[var(--text-muted)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-colors flex-center gap-2 cursor-pointer"
+      >
+        <span className="material-symbols-outlined">add</span>
+        {t("addExercise")}
+      </button>
+
+      {/* Add Exercise Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-2xl surface-card overflow-hidden max-h-[90vh] flex flex-col">
+            {/* Modal Header */}
+            <div className="p-6 pb-0">
+              <div className="flex-between mb-4">
+                <h2 className="text-heading text-xl">{t("addExercise")}</h2>
+                <button
+                  onClick={closeModal}
+                  className="p-1 rounded hover:bg-[var(--surface-hover)]"
+                >
+                  <span className="material-symbols-outlined">close</span>
+                </button>
+              </div>
+
+              {/* Tabs */}
+              <div className="flex gap-1 border-b border-[var(--border-default)]">
+                <button
+                  onClick={() => setModalTab("search")}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                    modalTab === "search"
+                      ? "border-[var(--color-primary)] text-[var(--color-primary)]"
+                      : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-lg align-middle mr-1">
+                    search
+                  </span>
+                  {t("searchExisting")}
+                </button>
+                <button
+                  onClick={() => setModalTab("create")}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                    modalTab === "create"
+                      ? "border-[var(--color-primary)] text-[var(--color-primary)]"
+                      : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-lg align-middle mr-1">
+                    add
+                  </span>
+                  {t("createNew")}
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {modalTab === "search" ? (
+                <div className="space-y-4">
+                  {/* Search Input */}
+                  <div className="form-search">
+                    <span className="material-symbols-outlined form-search-icon">
+                      search
+                    </span>
+                    <input
+                      type="text"
+                      placeholder={t("searchResources")}
+                      value={resourceSearch}
+                      onChange={(e) => setResourceSearch(e.target.value)}
+                      className="form-search-input"
+                      autoFocus
+                    />
+                  </div>
+
+                  {/* Resources Grid */}
+                  {availableResources.length === 0 ? (
+                    <div className="text-center py-12">
+                      <span className="material-symbols-outlined text-5xl text-[var(--text-muted)] mb-3">
+                        {resourceSearch ? "search_off" : "folder_open"}
+                      </span>
+                      <p className="text-body mb-2">
+                        {resourceSearch ? t("noResults") : t("allResourcesAdded")}
+                      </p>
+                      <button
+                        onClick={() => setModalTab("create")}
+                        className="text-[var(--color-primary)] hover:underline"
+                      >
+                        {t("createNewResource")}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {availableResources.map((resource) => (
+                        <button
+                          key={resource.id}
+                          onClick={() => handleAddFromResource(resource)}
+                          disabled={submitting}
+                          className="surface-card-interactive p-4 flex items-center gap-3 text-left disabled:opacity-50"
+                        >
+                          <div className="w-12 h-12 flex-center rounded-lg bg-[var(--surface-overlay)]">
+                            <ResourceIcon type={resource.type} size="md" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-sm font-medium text-[var(--text-primary)] truncate">
+                              {resource.title}
+                            </h4>
+                            <div className="flex items-center gap-2 text-caption">
+                              <span>{resource.type}</span>
+                              {resource.duration && (
+                                <>
+                                  <span>•</span>
+                                  <span>{formatDuration(resource.duration)}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          <span className="material-symbols-outlined text-[var(--color-primary)]">
+                            add_circle
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <form onSubmit={handleCreateAndAdd} className="space-y-4">
+                  {/* Type Selection */}
+                  <div>
+                    <label className="form-label">{t("resourceType")}</label>
+                    <div className="grid grid-cols-4 gap-2 mt-2">
+                      {(["VIDEO", "PDF", "URL", "TEXT"] as ResourceType[]).map((type) => (
+                        <button
+                          key={type}
+                          type="button"
+                          onClick={() => setNewResource({ ...newResource, type })}
+                          className={`p-3 rounded-lg border text-center transition-all ${
+                            newResource.type === type
+                              ? "border-[var(--color-primary)] bg-[var(--color-primary)]/10"
+                              : "border-[var(--border-default)] hover:border-[var(--border-hover)]"
+                          }`}
+                        >
+                          <ResourceIcon type={type} size="md" />
+                          <p className="text-xs mt-1 text-[var(--text-secondary)]">
+                            {type}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Title */}
+                  <div>
+                    <label htmlFor="resourceTitle" className="form-label">
+                      {t("titleLabel")}
+                    </label>
+                    <input
+                      type="text"
+                      id="resourceTitle"
+                      value={newResource.title}
+                      onChange={(e) => setNewResource({ ...newResource, title: e.target.value })}
+                      className="form-input mt-1"
+                      placeholder={t("titlePlaceholder")}
+                      required
+                    />
+                  </div>
+
+                  {/* URL (for VIDEO, PDF, URL types) */}
+                  {["VIDEO", "PDF", "URL"].includes(newResource.type) && (
+                    <div>
+                      <label htmlFor="resourceUrl" className="form-label">
+                        {t("urlLabel")}
+                      </label>
+                      <input
+                        type="url"
+                        id="resourceUrl"
+                        value={newResource.url}
+                        onChange={(e) => setNewResource({ ...newResource, url: e.target.value })}
+                        className="form-input mt-1"
+                        placeholder="https://"
+                        required
+                      />
+                    </div>
+                  )}
+
+                  {/* Content (for TEXT type) */}
+                  {newResource.type === "TEXT" && (
+                    <div>
+                      <label htmlFor="resourceContent" className="form-label">
+                        {t("contentLabel")}
+                      </label>
+                      <textarea
+                        id="resourceContent"
+                        value={newResource.content}
+                        onChange={(e) => setNewResource({ ...newResource, content: e.target.value })}
+                        className="form-textarea mt-1"
+                        rows={4}
+                        placeholder={t("contentPlaceholder")}
+                        required
+                      />
+                    </div>
+                  )}
+
+                  {/* Duration */}
+                  <div>
+                    <label htmlFor="resourceDuration" className="form-label">
+                      {t("durationLabel")}
+                    </label>
+                    <input
+                      type="number"
+                      id="resourceDuration"
+                      value={newResource.duration}
+                      onChange={(e) => setNewResource({ ...newResource, duration: e.target.value })}
+                      className="form-input mt-1"
+                      placeholder={t("durationPlaceholder")}
+                      min="1"
+                    />
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex justify-end gap-3 pt-4">
+                    <button type="button" onClick={closeModal} className="btn-ghost btn-md">
+                      {t("cancel")}
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="btn-primary btn-md"
+                    >
+                      {submitting ? t("adding") : t("createAndAdd")}
+                    </button>
+                  </div>
+                </form>
+              )}
             </div>
           </div>
-        ) : activeResource ? (
-          <div className="surface-card p-3 flex items-center gap-3 shadow-xl ring-2 ring-[var(--color-primary)]">
-            <div className="w-10 h-10 flex-center rounded-lg bg-[var(--surface-overlay)]">
-              <ResourceIcon type={activeResource.type} size="sm" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h4 className="text-sm font-medium text-[var(--text-primary)] truncate">
-                {activeResource.title}
-              </h4>
-              <p className="text-caption">{activeResource.type}</p>
-            </div>
-          </div>
-        ) : null}
-      </DragOverlay>
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       <ConfirmModal
@@ -825,7 +631,6 @@ export default function LessonEditorPage({
         confirmText={t("delete")}
         variant="danger"
       />
-    </div>
-    </DndContext>
+    </PageContainer>
   );
 }

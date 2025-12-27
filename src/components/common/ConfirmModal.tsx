@@ -130,7 +130,7 @@ export function ConfirmModal({
           <button
             onClick={onConfirm}
             disabled={loading}
-            className="flex-1 btn-md flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg transition-colors disabled:opacity-50"
+            className="flex-1 btn-md flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
               <div className="size-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

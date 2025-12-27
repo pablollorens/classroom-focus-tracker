@@ -289,7 +289,7 @@ export default function TeacherSessionPage({
             <p className="text-caption text-xs">{t("accessCode")}</p>
             <button
               onClick={handleCopyPassword}
-              className="text-2xl font-bold font-mono text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] flex items-center gap-1"
+              className="text-2xl font-bold font-mono text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] flex items-center gap-1 cursor-pointer"
             >
               {session.password}
               <span className="material-symbols-outlined text-lg">
@@ -297,8 +297,8 @@ export default function TeacherSessionPage({
               </span>
             </button>
           </div>
-          <button onClick={() => setShowEndSessionModal(true)} className="btn-danger btn-md">
-            <span className="material-symbols-outlined text-lg">stop</span>
+          <button onClick={() => setShowEndSessionModal(true)} className="btn-danger btn-md cursor-pointer">
+            <span className="material-symbols-outlined text-lg">stop_circle</span>
             <span className="hidden sm:inline">{t("end")}</span>
           </button>
         </div>

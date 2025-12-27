@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
-import { locales, localeNames, localeFlags, type Locale } from "@/i18n/config";
+import { locales, localeNames, type Locale } from "@/i18n/config";
+import { FlagIcon } from "./FlagIcon";
 
 export function LanguageSelector() {
   const locale = useLocale() as Locale;
@@ -35,11 +36,10 @@ export function LanguageSelector() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--surface-overlay)] hover:bg-[var(--surface-raised)] transition-colors text-sm"
+        className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg bg-[var(--surface-overlay)] hover:bg-[var(--surface-raised)] transition-colors"
         aria-label="Select language"
       >
-        <span>{localeFlags[locale]}</span>
-        <span className="text-white font-medium uppercase">{locale}</span>
+        <FlagIcon locale={locale} className="w-6 h-4" />
         <span className="material-symbols-outlined text-[var(--text-muted)] text-lg">
           {isOpen ? "expand_less" : "expand_more"}
         </span>
@@ -55,7 +55,7 @@ export function LanguageSelector() {
                 loc === locale ? "bg-[var(--surface-overlay)]" : ""
               }`}
             >
-              <span className="text-lg">{localeFlags[loc]}</span>
+              <FlagIcon locale={loc} className="w-6 h-4" />
               <span className="text-white">{localeNames[loc]}</span>
               {loc === locale && (
                 <span className="material-symbols-outlined text-[var(--color-primary)] ml-auto">

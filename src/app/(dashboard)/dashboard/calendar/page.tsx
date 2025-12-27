@@ -902,7 +902,7 @@ export default function CalendarPage() {
                     <option value={30}>{t("durationOptions.30min")}</option>
                     <option value={45}>{t("durationOptions.45min")}</option>
                     <option value={60}>{t("durationOptions.1hour")}</option>
-                    <option value={90}>{t("durationOptions.1.5hours")}</option>
+                    <option value={90}>{t("durationOptions.1_5hours")}</option>
                     <option value={120}>{t("durationOptions.2hours")}</option>
                   </select>
                 </div>

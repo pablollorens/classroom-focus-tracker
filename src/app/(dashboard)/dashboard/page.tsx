@@ -271,7 +271,7 @@ export default function DashboardPage() {
               </span>
             </div>
             <div>
-              <h3 className="text-heading text-base">{ts("library")}</h3>
+              <h3 className="text-heading text-base">{ts("lessons")}</h3>
               <p className="text-caption">{t("libraryDescription")}</p>
             </div>
           </Link>
@@ -284,17 +284,6 @@ export default function DashboardPage() {
             <div>
               <h3 className="text-heading text-base">{ts("schedule")}</h3>
               <p className="text-caption">{t("scheduleDescription")}</p>
-            </div>
-          </Link>
-          <Link href="/dashboard/reports" className="surface-card-interactive p-5 flex items-center gap-4 opacity-50 pointer-events-none">
-            <div className="icon-container-lg icon-muted">
-              <span className="material-symbols-outlined text-2xl">
-                bar_chart
-              </span>
-            </div>
-            <div>
-              <h3 className="text-heading text-base">{ts("reports")}</h3>
-              <p className="text-caption">{t("reportsDescription")}</p>
             </div>
           </Link>
         </div>

@@ -4,7 +4,7 @@ import "./globals.css";
 import { Providers } from "@/components/Providers";
 
 export const metadata: Metadata = {
-  title: "Classroom Focus Tracker",
+  title: "Kibo Class",
   description: "Real-time student attention monitoring",
 };
 

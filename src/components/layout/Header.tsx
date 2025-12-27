@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useSession } from "next-auth/react";
 import { SignOutButton } from "@/components/SignOutButton";
 import { LanguageSelector } from "@/components/LanguageSelector";
@@ -16,13 +17,15 @@ export function Header({ title, subtitle }: HeaderProps) {
     <header className="header">
       <div className="flex items-center gap-4">
         {/* Mobile Logo */}
-        <div className="md:hidden flex items-center gap-2">
-          <div className="flex-center size-8 rounded-lg bg-gradient-to-br from-[var(--color-primary)] to-blue-600 text-white">
-            <span className="material-symbols-outlined text-lg">
-              center_focus_strong
-            </span>
-          </div>
-          <span className="text-white font-bold text-sm">CFT</span>
+        <div className="md:hidden">
+          <Image
+            src="/logo.png"
+            alt="Kibo Class"
+            width={100}
+            height={40}
+            className="object-contain"
+            priority
+          />
         </div>
 
         {/* Title (desktop) */}

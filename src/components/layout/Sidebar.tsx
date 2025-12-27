@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 
@@ -12,9 +13,10 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { href: "/dashboard", labelKey: "dashboard", icon: "dashboard" },
-  { href: "/dashboard/lessons", labelKey: "library", icon: "local_library" },
+  { href: "/dashboard/groups", labelKey: "groups", icon: "groups" },
+  { href: "/dashboard/lessons", labelKey: "lessons", icon: "school" },
+  { href: "/dashboard/resources", labelKey: "resources", icon: "folder_open" },
   { href: "/dashboard/calendar", labelKey: "schedule", icon: "calendar_month" },
-  { href: "/dashboard/reports", labelKey: "reports", icon: "bar_chart" },
 ];
 
 export function Sidebar() {
@@ -33,19 +35,14 @@ export function Sidebar() {
       <div className="flex flex-col gap-8">
         {/* Logo */}
         <div className="sidebar-logo">
-          <div className="sidebar-logo-icon">
-            <span className="material-symbols-outlined text-2xl">
-              center_focus_strong
-            </span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-white text-base font-bold leading-tight tracking-tight">
-              Classroom
-            </span>
-            <span className="text-[var(--color-primary)] text-base font-bold leading-tight tracking-tight">
-              Focus Tracker
-            </span>
-          </div>
+          <Image
+            src="/logo.png"
+            alt="Kibo Class"
+            width={138}
+            height={55}
+            className="object-contain"
+            priority
+          />
         </div>
 
         {/* Navigation */}

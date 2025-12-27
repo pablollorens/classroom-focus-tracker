@@ -47,7 +47,7 @@ export default function LoginPage() {
             <div className="max-w-md w-full glass-panel p-8 rounded-2xl animate-in fade-in zoom-in duration-500">
                 <div className="text-center mb-8">
                     <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">
-                        Focus Tracker
+                        Kibo Class
                     </h1>
                     <p className="text-gray-400 mt-2">Teacher Login</p>
                 </div>

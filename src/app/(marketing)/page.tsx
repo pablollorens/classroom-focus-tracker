@@ -1,9 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
+import Link from "next/link";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { LanguageSelector } from "@/components/LanguageSelector";
 
 type Role = "student" | "teacher";
 
@@ -102,31 +105,33 @@ export default function Home() {
 
   return (
     <div className="bg-[#f6f7f8] dark:bg-[#101922] font-[Manrope] text-slate-900 dark:text-white antialiased min-h-screen flex flex-col overflow-x-hidden">
-      {/* Header */}
-      <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200 dark:border-[#283039] px-6 lg:px-10 py-4 bg-white dark:bg-[#111418] z-20">
-        <div className="flex items-center gap-3 text-slate-900 dark:text-white">
-          <div className="size-10 flex items-center justify-center bg-gradient-to-br from-[#137fec] to-blue-600 rounded-xl shadow-lg shadow-blue-500/20 text-white">
-            <span className="material-symbols-outlined text-[24px]">
-              center_focus_strong
-            </span>
-          </div>
-          <h2 className="text-xl font-extrabold leading-tight tracking-tight">
-            Classroom Focus Tracker
-          </h2>
-        </div>
-        <div className="flex items-center gap-4"></div>
-      </header>
+      {/* Language Selector - floating top right */}
+      <div className="absolute top-4 right-6 lg:right-10 z-20">
+        <LanguageSelector />
+      </div>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col items-center justify-center p-4 relative w-full">
+      <main className="flex-1 flex flex-col items-center justify-start pt-16 lg:pt-24 p-4 relative w-full">
         <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
           <div className="absolute -top-[20%] -right-[10%] w-[600px] h-[600px] bg-[#137fec]/10 rounded-full blur-[100px]"></div>
           <div className="absolute bottom-[0%] left-[0%] w-[400px] h-[400px] bg-[#137fec]/5 rounded-full blur-[80px]"></div>
         </div>
 
-        <div className="w-full max-w-5xl flex flex-col lg:flex-row gap-8 lg:gap-16 items-center justify-center z-10 py-10">
+        <div className="w-full max-w-5xl flex flex-col lg:flex-row gap-8 lg:gap-16 items-start justify-center z-10">
           {/* Left Column: Hero Text */}
           <div className="flex-1 max-w-[480px] flex flex-col gap-6 text-center lg:text-left">
+            {/* Logo */}
+            <div className="flex justify-center lg:justify-center mb-2">
+              <Image
+                src="/logo.png"
+                alt="Kibo Class"
+                width={320}
+                height={128}
+                className="object-contain"
+                priority
+              />
+            </div>
+
             <div className="space-y-4">
               <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#137fec]/10 border border-[#137fec]/20 text-[#137fec] text-xs font-bold uppercase tracking-wider">
                 <span className="relative flex h-2 w-2">
@@ -146,7 +151,7 @@ export default function Home() {
           </div>
 
           {/* Right Column: Login Card */}
-          <div className="flex-1 w-full max-w-[460px]">
+          <div className="flex-1 w-full max-w-[460px] lg:mt-44">
             <div className="bg-white dark:bg-[#1c252e] rounded-2xl shadow-xl dark:shadow-none border border-slate-200 dark:border-[#2c3642] overflow-hidden">
               <div className="p-8 pb-4">
                 <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
@@ -255,12 +260,12 @@ export default function Home() {
                         >
                           {t("password")}
                         </label>
-                        <a
-                          href="#"
+                        <Link
+                          href="/forgot-password"
                           className="text-xs font-medium text-[#137fec] hover:text-blue-400"
                         >
                           {t("forgotPassword")}
-                        </a>
+                        </Link>
                       </div>
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
@@ -386,7 +391,7 @@ export default function Home() {
       <footer className="w-full py-6 px-10 text-center border-t border-slate-200 dark:border-[#283039] bg-white dark:bg-[#111418]">
         <div className="flex flex-col md:flex-row justify-between items-center max-w-7xl mx-auto gap-4">
           <p className="text-sm text-slate-500 dark:text-[#9dabb9]">
-            &copy; {new Date().getFullYear()} Classroom Focus Tracker. {t("allRightsReserved")}
+            &copy; {new Date().getFullYear()} Kibo Class. {t("allRightsReserved")}
           </p>
         </div>
       </footer>

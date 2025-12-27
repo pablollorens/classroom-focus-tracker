@@ -164,3 +164,14 @@ model ScheduledClass {
   group          Group?          @relation(fields: [groupId], references: [id], onDelete: Cascade)
   preparedLesson PreparedLesson? @relation(fields: [preparedLessonId], references: [id], onDelete: Cascade)
 }
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  email     String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([token])
+}
